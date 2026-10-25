@@ -143,6 +143,15 @@ const ERR = {
   RANGO_INVALIDO: 'La fecha final es anterior a la inicial.',
   RANGO_MUY_GRANDE: 'El rango de fechas es demasiado grande (máximo 13 meses).',
   VERSION_INVALIDA: 'La versión del aviso de privacidad no coincide. Recarga la aplicación.',
+  LICENCIA_VENCIDA: 'La licencia de la escuela venció: está en solo lectura. Renueva para volver a registrar.',
+  LICENCIA_NO_ACTIVA: 'La licencia de esa escuela aún no está pagada (o está suspendida).',
+  ACCESO_SOPORTE_REQUERIDO: 'No tienes acceso a los datos de esa escuela. Hace falta que la escuela autorice una solicitud de soporte.',
+  VIGENCIA_INVALIDA: 'La vigencia debe ser una fecha posterior a hoy.',
+  TEXTO_REQUERIDO: 'Escribe el mensaje.',
+  TEXTO_MUY_LARGO: 'El mensaje es muy largo (máximo 1000 letras).',
+  SOLICITUD_NO_ENCONTRADA: 'No se encontró la solicitud.',
+  TELEFONO_INVALIDO: 'El teléfono no es válido (10 dígitos).',
+  NOTA_VACIA: 'Escribe la nota.',
   'Invalid login credentials': 'Correo o contraseña incorrectos.',
   'Email not confirmed': 'Aún no confirmas tu correo. Revisa tu bandeja de entrada.',
   'User already registered': 'Ese correo ya está registrado.',
@@ -409,3 +418,29 @@ export function validateRowsP(rows, existing = []) {
 
 // ---------- imágenes (logotipos) ----------
 export const LOGO_MAX_BYTES = 350 * 1024;
+
+
+// ---------- licencias ----------
+const MS_DIA = 86400000;
+// lic = {state, gratuita, vigencia_hasta, grace_days, suspended} que manda app_context. Se recalcula con la fecha del dispositivo
+// para que los avisos sigan bien aunque se abra sin internet. (La regla de verdad la aplica la base de datos.)
+export function licenseView(lic, now = new Date()) {
+  if (!lic) return { state: 'ACTIVA' };
+  if (lic.state === 'SUSPENDIDA') return { state: 'SUSPENDIDA' };
+  if (lic.gratuita) return { state: 'ACTIVA' };
+  if (!lic.vigencia_hasta) return { state: lic.state || 'PENDIENTE' };
+  const [y, m, d] = String(lic.vigencia_hasta).slice(0, 10).split('-').map(Number);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((Date.UTC(y, m - 1, d) - today) / MS_DIA);     // días que faltan para vencer (negativo = ya venció)
+  const grace = lic.grace_days ?? 15;
+  const gracia_hasta = new Date(Date.UTC(y, m - 1, d) + grace * MS_DIA).toISOString().slice(0, 10);
+  const state = days > 30 ? 'ACTIVA' : days >= 0 ? 'POR_VENCER' : -days <= grace ? 'GRACIA' : 'SOLO_LECTURA';
+  return { state, days, grace, vigencia_hasta: String(lic.vigencia_hasta).slice(0, 10), gracia_hasta, dias_gracia: grace + days };
+}
+export const SOLO_LECTURA = lic => ['SOLO_LECTURA', 'SUSPENDIDA'].includes(licenseView(lic).state);
+export function phoneDigits(v, lada = '52') {
+  const d = String(v ?? '').replace(/\D/g, '');
+  return d.length === 10 ? lada + d : d;
+}
+export const waLink = (number, text) => `https://wa.me/${phoneDigits(number)}?text=${encodeURIComponent(text)}`;
+export const fmtLarga = f => { const [y, m, d] = String(f).slice(0, 10).split('-').map(Number); return `${d} de ${MESES[m - 1]} de ${y}`; };

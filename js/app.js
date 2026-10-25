@@ -4,11 +4,11 @@ import { state, on, emit, isSuper, isAdmin, canScan, role, sid } from './state.j
 import { sb, rpc, configured, authApi, SCHOOL_COLS } from './api.js';
 import { kvGet, kvSet, kvDel, clearStores } from './db.js';
 import { loadLocal, refreshRoster, flushQueue, startBackground } from './sync.js';
-import { isNetworkError, errMsg } from './logic.js';
+import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.js';
 import { renderAuth, renderRecovery, renderBlocked, renderSetup } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.3.0';
+const VERSION = '2.4.0';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -35,19 +35,23 @@ const VIEWS = {
   security:      V('Seguridad',           'lock',   'admin', 'security'),
   settings:      V('Configuración',       'gear',   'admin', 'settings'),
   audit:         V('Bitácora',            'list',   'admin', 'audit'),
-  schools:       V('Escuelas',            'school', 'super', 'schools'),
+  schools:       V('Licencias',           'school', 'super', 'licencias'),
+  ayuda:         V('Ayuda y licencia',    'gear',   'schooladmin', 'ayuda'),
   import:        V('Importar',            'upload', 'admin', 'import', { hidden: true }),
 };
+const readOnly = () => !isSuper() && ['SOLO_LECTURA', 'SUSPENDIDA'].includes(licenseView(state.license).state);
 const allowed = k => {
   const v = VIEWS[k]; if (!v) return false;
   if (v.who === 'super') return isSuper();
+  if (v.who === 'schooladmin') return role() === 'school_admin';
+  if (readOnly() && (k === 'scan' || k === 'manual' || k === 'import')) return false;
   if (v.who === 'scan') return canScan();
   if (v.who === 'any') return canScan() || isAdmin();
   return isAdmin() && (!isSuper() || !!state.school);
 };
 const navKeys = () => Object.keys(VIEWS).filter(k => allowed(k) && !VIEWS[k].hidden);
 const primaryKeys = () => (isSuper() ? ['schools', 'students', 'reports'] : role() === 'school_admin' ? ['scan', 'manual', 'today', 'students'] : ['scan', 'manual', 'today']).filter(allowed);
-const defaultRoute = () => (isSuper() ? (state.school ? 'students' : 'schools') : 'scan');
+const defaultRoute = () => (isSuper() ? (state.school ? 'students' : 'schools') : readOnly() ? 'today' : 'scan');
 
 // ------------------------------------------------------------------ arranque
 async function boot() {
@@ -100,10 +104,14 @@ async function applyContext(ctx) {
   }
   state.status = ctx.status; state.profile = ctx.profile;
   state.school = ctx.school || null;
+  state.license = ctx.license || null; state.supportWhatsapp = ctx.support_whatsapp || null;
+  if (!isSuper() && licenseView(state.license).state === 'SUSPENDIDA') {
+    return renderSuspended();
+  }
 
   if (isSuper()) {
     const last = await kvGet('superSchool');
-    if (last && navigator.onLine) { try { await selectSchool(last, true); } catch { /* */ } }
+    if (last && navigator.onLine) { try { await selectSchool(last, true); } catch { state.school = null; await kvDel('superSchool'); } }
   }
   if (canScan()) {
     if ((await kvGet('rosterUser')) !== state.profile.id) { await clearStores(['students', 'today']); await kvSet('rosterUser', state.profile.id); }
@@ -126,6 +134,14 @@ async function applyContext(ctx) {
   }
 }
 
+function renderSuspended() {
+  const wa = state.supportWhatsapp;
+  clear(root).append(h('div', { class: 'auth-card' }, h('h2', null, 'Licencia suspendida'),
+    h('p', null, 'El servicio de esta escuela está suspendido. Tus datos están guardados y no se pierden.'),
+    wa ? h('a', { class: 'btn primary', href: waLink(wa, 'Hola, la licencia de mi escuela aparece suspendida en el Checador QR.'), target: '_blank', rel: 'noopener' }, 'Escribir a soporte por WhatsApp') : null,
+    h('button', { class: 'btn', onclick: logout }, 'Cerrar sesión')));
+}
+
 async function selectSchool(id, silent = false) {
   const { data, error } = await sb.from('schools').select(SCHOOL_COLS).eq('id', id).single();
   if (error) throw error;
@@ -135,7 +151,7 @@ async function selectSchool(id, silent = false) {
 async function reloadSchool() {
   try {
     if (isSuper()) { if (state.school) await selectSchool(state.school.id, true); }
-    else { const ctx = await rpc('app_context'); state.school = ctx.school; await kvSet('ctx', { ...ctx, user_id: state.user?.id }); }
+    else { const ctx = await rpc('app_context'); state.school = ctx.school; state.license = ctx.license || null; state.supportWhatsapp = ctx.support_whatsapp || null; await kvSet('ctx', { ...ctx, user_id: state.user?.id }); }
     if (canScan()) refreshRoster().catch(() => {});
     buildShell(); route();
   } catch (e) { toast(errMsg(e), 'error'); }
@@ -208,6 +224,11 @@ function drawStatus() {
     s.append(icon(offline ? 'wifioff' : n ? 'sync' : 'check', 16), ' ', f ? `${f} con error` : offline ? (n ? `Sin conexión · ${n} por enviar` : 'Sin conexión') : n ? `Enviando ${n}…` : 'En línea');
   }
   clear(b);
+  const lv = isSuper() ? null : licenseView(state.license), wa = state.supportWhatsapp;
+  const waA = txt => wa ? h('a', { href: waLink(wa, `Hola, soy de ${state.school?.name || 'mi escuela'}. ${txt}`), target: '_blank', rel: 'noopener' }, ' Escribir a soporte') : null;
+  if (lv && lv.state === 'POR_VENCER') b.append(h('div', { class: 'banner info' }, `Tu licencia vence el ${fmtLarga(lv.vigencia_hasta)} (${lv.days} día${lv.days === 1 ? '' : 's'}).`, waA('Quiero renovar la licencia.')));
+  else if (lv && lv.state === 'GRACIA') b.append(h('div', { class: 'banner warn' }, `Tu licencia venció. Tienes ${lv.dias_gracia} día${lv.dias_gracia === 1 ? '' : 's'} de gracia (hasta el ${fmtLarga(lv.gracia_hasta)}); después quedará en solo lectura.`, waA('Quiero renovar la licencia.')));
+  else if (lv && lv.state === 'SOLO_LECTURA') b.append(h('div', { class: 'banner bad' }, 'Licencia vencida: solo lectura. Puedes consultar, imprimir y descargar, pero no registrar entradas.', waA('Quiero renovar la licencia.')));
   if (state.clockSkew !== undefined && Math.abs(state.clockSkew) > 120) {
     b.append(h('div', { class: 'banner bad' }, `⚠ La hora de este celular está ${state.clockSkew > 0 ? 'adelantada' : 'atrasada'} ${Math.round(Math.abs(state.clockSkew) / 60)} min. Actívala en automático (Ajustes del teléfono → Fecha y hora) o los retardos saldrán mal.`));
   } else if (state.offlineMode) {

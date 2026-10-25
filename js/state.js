@@ -13,6 +13,7 @@ export const state = {
   scanCfg: { staff_qr_enabled: false, staff_tolerance_min: 5, alarm_minutes: 10 },
   fecha: null,
   pending: 0, failed: 0, lastSync: null,
+  license: null, supportWhatsapp: null,   // licencia de la escuela y WhatsApp de soporte (app_context)
   offlineMode: false,  // se abrió sin internet con la sesión guardada
 };
 
