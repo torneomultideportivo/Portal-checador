@@ -85,12 +85,17 @@ function extraForm(s) {
   const alarm = inp(s.alarm_minutes ?? 10, { type: 'number', min: 1, max: 240 });
   const lateN = inp(s.citation_late_min ?? 3, { type: 'number', min: 1 }), absN = inp(s.citation_absent_min ?? 3, { type: 'number', min: 1 });
   const logos = { logo_ieepo: undefined, logo_school: undefined };
+  const assetsP = rpc('school_assets', { p_school: sid() }).catch(() => null);   // logos y textos del citatorio
+  const headerLine = inp('', { placeholder: 'Opcional. Ej. Secretaría o instituto de la entidad' });
+  const placeLine = inp('', { placeholder: 'Ej. SANTA MARÍA PEÑOLES, ETLA, OAX.' });
+  const dirTitle = inp('', { placeholder: 'Ej. DIRECTORA DE LA ESCUELA' });
+  const citText = h('textarea', { class: 'input', rows: 4, maxlength: 800, placeholder: 'Déjalo vacío para usar el texto estándar.' });
+  let assetsReady = false;
+  assetsP.then(a => { if (!a) return; headerLine.value = a.header_line || ''; placeLine.value = a.place_line || ''; dirTitle.value = a.director_title || ''; citText.value = a.citation_text || ''; assetsReady = true; });
   const logoBox = (key, label) => {
     const prev = h('div', { class: 'logo-prev' }, s['has_' + key] || s[key] ? 'Ya hay un logo guardado' : 'Sin logo');
     const showImg = src => clear(prev).append(h('img', { src, alt: label, style: { maxHeight: '70px' } }));
-    if (state.school && !(s['has_' + key] === false)) {
-      rpc('school_assets', { p_school: sid() }).then(a => { if (a?.[key] && logos[key] === undefined) showImg(a[key]); }).catch(() => {});
-    }
+    assetsP.then(a => { if (a?.[key] && logos[key] === undefined) showImg(a[key]); });
     const file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', onchange: async e => {
       const fl = e.target.files[0]; if (!fl) return;
       try { logos[key] = await toDataUrl(fl); showImg(logos[key]); } catch (er) { toast(errMsg(er), 'error'); }
@@ -101,6 +106,10 @@ function extraForm(s) {
     h('h3', null, 'Datos para citatorios y credenciales'),
     f('Domicilio de la escuela', address), h('div', { class: 'grid3' }, f('Código postal', cp), f('Teléfono del director(a)', dph), f('Teléfono del subdirector(a)', sph)),
     h('div', { class: 'grid2' }, logoBox('logo_ieepo', 'Logotipo IEEPO (izquierda)'), logoBox('logo_school', 'Logotipo de la escuela (derecha)')),
+    h('h3', null, 'Formato del citatorio general'),
+    h('p', { class: 'muted small' }, 'El citatorio se arma solo con los datos de la escuela (nombre, CCT, logotipos, director). Aquí ajustas lo que cambia de una escuela a otra.'),
+    f('Línea extra del encabezado', headerLine), h('div', { class: 'grid2' }, f('Lugar para la fecha', placeLine, 'Sale como "LUGAR, A 25 DE OCTUBRE DEL 2026".'), f('Cargo en la firma', dirTitle)),
+    f('Texto del citatorio', citText, 'Puedes usar {fecha_cita} y {hora}; se llenan solos. Vacío = "Por medio del presente se le cita a usted, en esta institución educativa, el día … a las … hrs. para tratar asuntos relacionados con la educación de su hijo(a) o tutorado."'),
     h('h3', null, 'Entrada del personal con QR'),
     h('label', { class: 'chk big' }, sw, ' Activar el registro de entrada del personal con QR en esta escuela'),
     h('p', { class: 'muted small' }, 'Encendido: todo el personal (también el que llegue después) debe escanear su QR al entrar, cada quien contra su propia hora de entrada. Apagado: el QR del personal avisa "no activada" y no registra nada.'),
@@ -111,6 +120,7 @@ function extraForm(s) {
   const values = () => {
     const v = { address: address.value, postal_code: cp.value, director_phone: dph.value, subdirector_phone: sph.value, staff_qr_enabled: sw.checked,
       staff_tolerance_min: Number(stol.value || 0), alarm_minutes: Number(alarm.value || 10), citation_late_min: Number(lateN.value || 3), citation_absent_min: Number(absN.value || 3) };
+    if (assetsReady) Object.assign(v, { header_line: headerLine.value, place_line: placeLine.value, director_title: dirTitle.value, citation_text: citText.value });
     for (const k of Object.keys(logos)) if (logos[k]) v[k] = logos[k];
     return v;
   };

@@ -148,7 +148,7 @@ const ERR = {
   ACCESO_SOPORTE_REQUERIDO: 'No tienes acceso a los datos de esa escuela. Hace falta que la escuela autorice una solicitud de soporte.',
   VIGENCIA_INVALIDA: 'La vigencia debe ser una fecha posterior a hoy.',
   TEXTO_REQUERIDO: 'Escribe el mensaje.',
-  TEXTO_MUY_LARGO: 'El mensaje es muy largo (máximo 1000 letras).',
+  TEXTO_MUY_LARGO: 'El texto es demasiado largo.',
   SOLICITUD_NO_ENCONTRADA: 'No se encontró la solicitud.',
   TELEFONO_INVALIDO: 'El teléfono no es válido (10 dígitos).',
   NOTA_VACIA: 'Escribe la nota.',
