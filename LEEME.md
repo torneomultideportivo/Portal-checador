@@ -71,3 +71,8 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 - Pantalla **Ayuda y licencia** (administrativo): ver su licencia, pedir ayuda y autorizar 3 días de acceso a soporte (revocable).
 - El administrador general NO ve alumnos de otras escuelas salvo la escuela propia (gratuita) o con autorización de soporte vigente.
 - WhatsApp de soporte: se cambia desde la pantalla Licencias.
+
+## Varios administrativos (versión 2.6.0)
+- Base de datos ya instalada: ejecutar **supabase/schema_v4.sql** (formato del citatorio) y luego **supabase/schema_v5.sql** (varios administrativos). Cada uno se puede repetir sin riesgo.
+- Hasta 4 administrativos por escuela, todos con los mismos permisos. Una clave ADM nueva suma a otro; ya no reemplaza al actual.
+- En "Usuarios y roles" el administrativo genera claves, agrega prefectos como administrativos y da de baja a otros. Nunca se puede dar de baja al último.

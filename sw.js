@@ -1,6 +1,6 @@
 // Service worker: guarda la aplicación en el celular para que abra SIN internet.
 // Cambia VERSION cuando publiques una nueva versión de los archivos.
-const VERSION = 'checador-v2.5.1';
+const VERSION = 'checador-v2.6.0';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
   'js/app.js', 'js/api.js', 'js/config.js', 'js/db.js', 'js/logic.js', 'js/scanner.js', 'js/state.js', 'js/sync.js', 'js/ui.js', 'js/printing.js', 'js/privacy_text.js',

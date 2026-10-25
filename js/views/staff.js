@@ -10,7 +10,7 @@ const Y = h => h, S = '✓', N = '—';
 function rolesTable() {
   const rows = [
     ['Super administrador', 'Todas las escuelas', [N, S, S, S, S, S]],
-    ['Administrativo', 'Uno por escuela', [S, S, S, S, S, S]],
+    ['Administrativo', 'Hasta 4 por escuela', [S, S, S, S, S, S]],
     ['Prefecto', 'Solo puerta', [S, N, N, 'Solo su día', N, N]],
   ];
   return h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
@@ -43,9 +43,12 @@ export function render(root) {
       h('tbody', null, data.map(p => {
         const [c, t] = status(p);
         const acts = [];
+        if (p.role === 'school_admin' && p.activated_at && p.id !== state.profile.id) {
+          acts.push(h('button', { class: 'btn small' + (p.active ? ' danger' : ''), onclick: ev => toggleAdmin(ev.currentTarget, p) }, p.active ? 'Dar de baja' : 'Reactivar'));
+        }
         if (p.role === 'prefect' && p.activated_at) {
           acts.push(h('button', { class: 'btn small', onclick: ev => toggle(ev.currentTarget, p) }, p.active ? 'Dar de baja' : 'Reactivar'));
-          if (p.active && role() === 'school_admin') acts.push(h('button', { class: 'btn small', onclick: ev => promote(ev.currentTarget, p) }, 'Hacer administrativo'));
+          if (p.active && role() === 'school_admin') acts.push(h('button', { class: 'btn small', onclick: ev => promote(ev.currentTarget, p) }, 'Agregar como administrativo'));
         }
         return h('tr', { class: p.active ? '' : 'inactive' }, h('td', null, h('b', null, p.full_name)), h('td', null, p.email), h('td', null, ROLE[p.role]),
           h('td', null, h('span', { class: 'badge ' + c }, t)), h('td', { class: 'acts' }, acts));
@@ -56,19 +59,23 @@ export function render(root) {
     if (p.active && !(await confirmBox(`¿Dar de baja a ${p.full_name}? Ya no podrá registrar entradas. Su historial se conserva.`, { ok: 'Dar de baja', danger: true }))) return;
     await guard(btn, async () => { await rpc('set_staff_active', { p_user: p.id, p_active: !p.active }); toast('Listo', 'ok'); await loadPeople(); });
   }
+  async function toggleAdmin(btn, p) {
+    if (p.active && !(await confirmBox(`¿Dar de baja a ${p.full_name}? Ya no podrá entrar como administrativo. Su historial se conserva y siempre debe quedar al menos un administrativo.`, { ok: 'Dar de baja', danger: true }))) return;
+    await guard(btn, async () => { await rpc('set_admin_active', { p_user: p.id, p_active: !p.active }); toast('Listo', 'ok'); await loadPeople(); });
+  }
   async function promote(btn, p) {
-    const ok = await confirmBox(`Vas a dejar como administrativo a ${p.full_name}.\n\nTU cuenta se dará de baja en este mismo momento y saldrás de la aplicación. Solo puede haber un administrativo por escuela.`, { ok: 'Hacer el relevo ahora', danger: true, title: 'Relevo de administrativo' });
+    const ok = await confirmBox(`${p.full_name} también será administrativo de la escuela, con los mismos permisos que tú. Tu cuenta no cambia. Puede haber hasta 4 administrativos.`, { ok: 'Agregar como administrativo', title: 'Otro administrativo' });
     if (!ok) return;
-    await guard(btn, async () => { await rpc('promote_to_admin', { p_user: p.id }); toast('Relevo hecho. Se cerrará tu sesión.', 'ok', 4000); setTimeout(() => location.reload(), 1500); });
+    await guard(btn, async () => { await rpc('promote_to_admin', { p_user: p.id }); toast('Listo: ya es administrativo', 'ok'); await loadPeople(); });
   }
   async function relevo(btn) {
     await guard(btn, async () => {
       const r = await rpc('generate_admin_code', { p_school: sid() });
       const exp = new Date(r.expires_at).toLocaleString('es-MX');
-      const m = modal({ title: 'Código de administrativo', body: [
+      const m = modal({ title: 'Clave para otro administrativo', body: [
         h('div', { class: 'code big' }, r.code),
         h('p', null, `Vence el ${exp}. Es de un solo uso.`),
-        h('p', null, 'La persona nueva debe registrarse en la aplicación con este código y confirmar su correo. En ese momento el administrativo actual se da de baja automáticamente.'),
+        h('p', null, 'La persona debe registrarse en la aplicación con esta clave y confirmar su correo. Queda como administrativo junto con los actuales (hasta 4). Esta clave solo sirve una vez.'),
       ], actions: [h('button', { class: 'btn', onclick: () => copyText(r.code) }, 'Copiar'), h('button', { class: 'btn primary', onclick: () => m.close() }, 'Listo')] });
     });
   }
@@ -80,10 +87,10 @@ export function render(root) {
       h('p', null, 'Comparte este código con el personal de puerta. Cada persona entra a ', h('b', null, url), ', toca "Registrarme" y escribe el código con su correo y contraseña.'),
       codeBox),
     h('div', { class: 'card' }, h('h3', null, 'Cuentas de la escuela'), people),
-    h('div', { class: 'card' }, h('h3', null, isSuper() ? 'Emergencia: nuevo administrativo' : 'Relevo del administrativo'),
+    h('div', { class: 'card' }, h('h3', null, isSuper() ? 'Emergencia: nuevo administrativo' : 'Agregar otro administrativo'),
       h('p', null, isSuper()
-        ? 'Si la escuela se quedó sin quien la administre, genera un código para registrar al nuevo administrativo (reemplaza al anterior al confirmarse).'
-        : 'Si dejas el puesto, genera un código para tu relevo (o usa "Hacer administrativo" en un prefecto). La escuela nunca se queda sin administrativo: tu baja ocurre cuando el relevo ya está activo.'),
-      h('button', { class: 'btn', onclick: ev => relevo(ev.currentTarget) }, 'Generar código de administrativo'))));
+        ? 'Si la escuela se quedó sin quien la administre, genera una clave para registrar a un nuevo administrativo. Se suma a los que existan; después se puede dar de baja a quien ya no esté.'
+        : 'Para el subdirector o un relevo: genera una clave (o usa "Agregar como administrativo" en un prefecto). Todos los administrativos tienen los mismos permisos y la escuela siempre conserva al menos uno. Recomendado: tener siempre dos.'),
+      h('button', { class: 'btn', onclick: ev => relevo(ev.currentTarget) }, 'Generar clave de administrativo'))));
   loadCode(); loadPeople();
 }
