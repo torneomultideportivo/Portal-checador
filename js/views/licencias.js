@@ -12,6 +12,7 @@ const ESTADO = {
 const chip = st => { const [c, t] = ESTADO[st] || ['muted', st]; return h('span', { class: 'badge ' + c }, t); };
 const fecha = f => (f ? fmtLarga(f) : '—');
 const hoyIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const local = n => (/^52\d{10}$/.test(n || '') ? n.slice(2) : (n || ''));   // se guarda con 52 (lo pide WhatsApp), se muestra sin él
 const dt = v => (v ? new Date(v).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
 
 export function render(root, { onSelect }) {
@@ -65,7 +66,7 @@ export function render(root, { onSelect }) {
       h('div', { class: 'cnt bad' }, h('b', null, cont(['SOLO_LECTURA', 'SUSPENDIDA'])), h('span', null, 'Sin servicio')),
       h('div', { class: 'cnt' }, h('b', null, cont(['PENDIENTE'])), h('span', null, 'Pendientes'))));
     wrap.append(h('div', { class: 'btn-row' },
-      h('button', { class: 'btn small', onclick: editWhatsapp }, icon('gear', 16), ' WhatsApp de soporte: ' + (data.whatsapp || 'sin definir'))));
+      h('button', { class: 'btn small', onclick: editWhatsapp }, icon('gear', 16), ' WhatsApp de soporte: ' + (local(data.whatsapp) || 'sin definir'))));
     if (!rows.length) wrap.append(h('div', { class: 'empty' }, 'Todavía no hay escuelas. Crea la primera con "+ Escuela".'));
     const grid = h('div', { class: 'cards-grid' });
     for (const s of rows) {
@@ -86,9 +87,9 @@ export function render(root, { onSelect }) {
   }
 
   function editWhatsapp() {
-    const inp = h('input', { type: 'tel', value: data.whatsapp || '', placeholder: '10 dígitos' });
+    const inp = h('input', { type: 'tel', value: local(data.whatsapp), placeholder: '10 dígitos' });
     const save = h('button', { class: 'btn primary' }, 'Guardar');
-    const m = modal({ title: 'WhatsApp de soporte', body: [h('p', { class: 'muted' }, 'Es el número al que escriben las escuelas desde "Ayuda".'), h('label', null, 'Número', inp)],
+    const m = modal({ title: 'WhatsApp de soporte', body: [h('p', { class: 'muted' }, 'Es el número al que escriben las escuelas desde "Ayuda". Escríbelo a 10 dígitos; la lada de México (52) se agrega sola para WhatsApp.'), h('label', null, 'Número', inp)],
       actions: [h('button', { class: 'btn', onclick: () => m.close() }, 'Cancelar'), save] });
     save.onclick = () => guard(save, async () => {
       await rpc('set_support_whatsapp', { p_number: phoneDigits(inp.value) });
@@ -121,7 +122,7 @@ export function render(root, { onSelect }) {
     let m;
 
     const f = (lbl, el) => h('label', null, lbl, el);
-    const cname = h('input', { value: L.contact_name || '' }), cphone = h('input', { type: 'tel', value: L.contact_phone || '' });
+    const cname = h('input', { value: L.contact_name || '' }), cphone = h('input', { type: 'tel', value: local(L.contact_phone) });
     const grace = h('input', { type: 'number', min: 0, max: 60, value: L.grace_days ?? 15 });
     const gratis = h('input', { type: 'checkbox' }); gratis.checked = !!L.gratuita;
     const saveBtn = h('button', { class: 'btn small', onclick: ev => guard(ev.currentTarget, async () => {

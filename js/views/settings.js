@@ -87,9 +87,13 @@ function extraForm(s) {
   const logos = { logo_ieepo: undefined, logo_school: undefined };
   const logoBox = (key, label) => {
     const prev = h('div', { class: 'logo-prev' }, s['has_' + key] || s[key] ? 'Ya hay un logo guardado' : 'Sin logo');
+    const showImg = src => clear(prev).append(h('img', { src, alt: label, style: { maxHeight: '70px' } }));
+    if (state.school && !(s['has_' + key] === false)) {
+      rpc('school_assets', { p_school: sid() }).then(a => { if (a?.[key] && logos[key] === undefined) showImg(a[key]); }).catch(() => {});
+    }
     const file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', onchange: async e => {
       const fl = e.target.files[0]; if (!fl) return;
-      try { logos[key] = await toDataUrl(fl); clear(prev).append(h('img', { src: logos[key], alt: label, style: { maxHeight: '70px' } })); } catch (er) { toast(errMsg(er), 'error'); }
+      try { logos[key] = await toDataUrl(fl); showImg(logos[key]); } catch (er) { toast(errMsg(er), 'error'); }
     } });
     return f(label, h('div', null, prev, file), 'PNG con fondo transparente, de preferencia.');
   };
