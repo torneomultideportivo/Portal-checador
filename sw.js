@@ -1,12 +1,12 @@
 // Service worker: guarda la aplicación en el celular para que abra SIN internet.
 // Cambia VERSION cuando publiques una nueva versión de los archivos.
-const VERSION = 'checador-v2.1.0';
+const VERSION = 'checador-v2.2.0';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
   'js/app.js', 'js/api.js', 'js/config.js', 'js/db.js', 'js/logic.js', 'js/scanner.js', 'js/state.js', 'js/sync.js', 'js/ui.js', 'js/printing.js', 'js/privacy_text.js',
   'js/views/auth.js', 'js/views/scan.js', 'js/views/manual.js', 'js/views/today.js', 'js/views/students.js', 'js/views/import.js',
   'js/views/cards.js', 'js/views/reports.js', 'js/views/staff.js', 'js/views/settings.js', 'js/views/audit.js', 'js/views/schools.js',
-  'js/views/personal.js', 'js/views/tutors.js', 'js/views/felicitaciones.js', 'js/views/citatorios.js', 'js/views/retardos.js', 'js/views/alarms.js', 'js/views/security.js', 'js/views/privacy.js', 'js/views/probar.js',
+  'js/views/personal.js', 'js/views/tutors.js', 'js/views/felicitaciones.js', 'js/views/citatorios.js', 'js/views/retardos.js', 'js/views/alarms.js', 'js/views/security.js', 'js/views/privacy.js', 'js/views/probar.js', 'js/views/capacitacion.js', 'assets/capacitacion.pdf',
   'vendor/supabase.js', 'vendor/qrcode.js', 'vendor/jsQR.js', 'vendor/exceljs.min.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
 ];
