@@ -201,3 +201,15 @@ nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display
 .ct-sign { display: flex; gap: 1cm; margin-top: auto; text-align: center; } .ct-sign > div { flex: 1; display: flex; flex-direction: column; } .ct-sign span { border-top: .2mm solid #000; margin-top: .6cm; } .ct-sign small { font-size: 7.5pt; }
 @media print { .print-page.stk-page, .print-page.ct-page { width: 21.59cm; min-height: 0; height: 27.94cm; } @page { size: letter; margin: 0; } }
 .filters.wrap { align-items: end; } .filters.wrap .field .input { flex: none; }
+
+/* Estadística */
+.st-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin: .6rem 0; }
+.st-kpis .k { background: var(--card); border-radius: var(--r); padding: .8rem 1rem; box-shadow: var(--shadow); } .st-kpis .k b { display: block; font-size: 2rem; } .st-kpis .k span { font-size: .8rem; opacity: .75; }
+.st-mc { color: #d9558a; } .st-hc { color: #2f7de1; } i.st-m, i.st-h { display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; margin: 0 .3rem 0 .8rem; }
+.st-m { background: #d9558a; } .st-h { background: #2f7de1; }
+.st-chart { display: flex; gap: .6rem; align-items: flex-end; justify-content: center; min-height: 230px; padding-top: .4rem; }
+.st-col { text-align: center; flex: 1; max-width: 90px; } .st-stack { display: flex; flex-direction: column; border-radius: 6px; overflow: hidden; } .st-stack div { width: 100%; }
+.st-num { font-weight: bold; margin-bottom: 2px; } .st-lb { font-weight: bold; font-size: .8rem; margin-top: 4px; } .st-mh { font-size: .7rem; } .st-leg { text-align: center; font-size: .8rem; margin-top: .5rem; }
+.st-sub td { background: rgba(0,0,0,.05); font-weight: bold; } .st-tot td { background: rgba(46,158,91,.15); font-weight: bold; }
+.print-page.stat-page { display: block; width: 19cm; min-height: 0; padding: 1cm; }
+.print-page.stat-page table { width: 100%; border-collapse: collapse; font-size: .85rem; } .print-page.stat-page td, .print-page.stat-page th { border: 1px solid #999; padding: 3px 6px; text-align: center; }

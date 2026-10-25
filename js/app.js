@@ -8,7 +8,7 @@ import { isNetworkError, errMsg } from './logic.js';
 import { renderAuth, renderRecovery, renderBlocked, renderSetup } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -21,6 +21,7 @@ const VIEWS = {
   probar:        V('Probar QR',           'scan',   'admin', 'probar'),
   capacitacion:  V('Capacitación',        'list',   'any',   'capacitacion'),
   retardos:      V('Retardos y faltas',   'chart',  'admin', 'retardos'),
+  estadistica:   V('Estadística',         'chart',  'admin', 'estadistica'),
   students:      V('Alumnos',             'users',  'admin', 'students'),
   tutors:        V('Tutores',             'users',  'admin', 'tutors'),
   personal:      V('Personal',            'users',  'admin', 'personal'),
