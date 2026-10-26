@@ -230,3 +230,15 @@ label.check { flex-direction: row !important; align-items: center; gap: .4rem; f
 .ctg-cuerpo { text-align: justify; margin-top: .15cm; }
 .ctg-firma { margin-top: auto; text-align: center; line-height: 1.15; display: flex; flex-direction: column; align-items: center; }
 .ctg-firma span { width: 7.5cm; border-top: .2mm solid #000; margin: 1.1cm 0 .08cm; }
+
+/* lista de asistencia de padres de familia: carta, 22 renglones */
+.print-page.lp-page { width: 21.59cm; min-height: 27.94cm; padding: 1.2cm 1.5cm; display: block; color: #000; position: relative; font-size: 9.5pt; }
+.lp-titulo { text-align: center; font-weight: 900; letter-spacing: .08em; font-size: 12pt; margin: .35cm 0 .25cm; }
+.lp-datos { display: flex; gap: 1cm; flex-wrap: wrap; margin: .1cm 0; }
+.lp-tabla { width: 100%; border-collapse: collapse; margin-top: .3cm; }
+.lp-tabla th, .lp-tabla td { border: .25mm solid #000; padding: 0 .15cm; height: .75cm; font-size: 8.5pt; }
+.lp-tabla th { background: #eee; font-size: 8pt; height: .7cm; }
+.lp-tabla td.n { width: 1cm; text-align: center; } .lp-tabla td.f { width: 5.2cm; }
+.lp-pie { display: flex; flex-direction: column; align-items: center; margin-top: .7cm; } .lp-pie span { border-top: .2mm solid #000; width: 7cm; } .lp-pie small { font-size: 7.5pt; }
+.lp-hoja { position: absolute; bottom: .7cm; right: 1.5cm; font-size: 7.5pt; color: #444; }
+@media print { .print-page.lp-page { width: 21.59cm; min-height: 0; height: 27.94cm; } }

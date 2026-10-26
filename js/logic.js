@@ -447,3 +447,27 @@ export function phoneDigits(v, lada = '52') {
 }
 export const waLink = (number, text) => `https://wa.me/${phoneDigits(number)}?text=${encodeURIComponent(text)}`;
 export const fmtLarga = f => { const [y, m, d] = String(f).slice(0, 10).split('-').map(Number); return `${d} de ${MESES[m - 1]} de ${y}`; };
+
+// Listas de asistencia de padres de familia: una por grado y grupo, con cada alumno y sus tutores.
+// `tutors` es lo que devuelve list_tutors. Con `grado`/`grupo` se limita a ese grupo; vacío = toda la escuela.
+export function parentLists(tutors, { grado = '', grupo = '' } = {}) {
+  const alumnos = new Map();
+  for (const t of tutors || []) {
+    for (const a of t.hijos || []) {
+      if (grado && String(a.grado) !== String(grado)) continue;
+      if (grupo && String(a.grupo) !== String(grupo)) continue;
+      if (!alumnos.has(a.id)) alumnos.set(a.id, { id: a.id, nombre: a.nombre, grado: a.grado, grupo: a.grupo, tutores: [] });
+      alumnos.get(a.id).tutores.push(t.nombre);
+    }
+  }
+  const groups = new Map();
+  for (const a of alumnos.values()) {
+    const k = `${a.grado}|${a.grupo}`;
+    if (!groups.has(k)) groups.set(k, { grado: a.grado, grupo: a.grupo, alumnos: [] });
+    groups.get(k).alumnos.push(a);
+  }
+  const cmp = (x, y) => String(x).localeCompare(String(y), 'es', { numeric: true });
+  return [...groups.values()]
+    .sort((a, b) => cmp(a.grado, b.grado) || cmp(a.grupo, b.grupo))
+    .map(g => ({ ...g, alumnos: g.alumnos.sort((a, b) => cmp(a.nombre, b.nombre)) }));
+}
