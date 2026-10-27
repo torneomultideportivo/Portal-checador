@@ -521,3 +521,22 @@ export function suscribe(school, assets = {}) {
 export function llenar(texto, vars) {
   return String(texto || '').replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === '' ? m : vars[k]));
 }
+
+// Familias: agrupa lo que devuelve list_tutors por tutor (CURP; sin CURP, por nombre) y junta sus hijos sin repetir.
+// `soloMultiples` deja a los tutores con 2 o más hijos en la escuela.
+export function familias(tutors, { soloMultiples = false } = {}) {
+  const map = new Map();
+  for (const t of tutors || []) {
+    const key = t.curp ? `c:${t.curp}` : `n:${searchKey(t.nombre)}`;
+    if (!map.has(key)) map.set(key, { nombre: t.nombre, curp: t.curp || '', hijos: new Map() });
+    for (const a of t.hijos || []) map.get(key).hijos.set(a.id, a);
+  }
+  const cmp = (x, y) => String(x).localeCompare(String(y), 'es', { numeric: true });
+  const all = [...map.values()].map(f => ({ nombre: f.nombre, curp: f.curp,
+    hijos: [...f.hijos.values()].sort((a, b) => cmp(a.grado, b.grado) || cmp(a.grupo, b.grupo) || cmp(a.nombre, b.nombre)) }))
+    .filter(f => f.hijos.length);
+  const resumen = { total: all.length, uno: all.filter(f => f.hijos.length === 1).length, multiples: all.filter(f => f.hijos.length >= 2).length };
+  const lista = (soloMultiples ? all.filter(f => f.hijos.length >= 2) : all)
+    .sort((a, b) => b.hijos.length - a.hijos.length || cmp(a.nombre, b.nombre));
+  return { lista, resumen };
+}

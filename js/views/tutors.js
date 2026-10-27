@@ -1,8 +1,8 @@
 // Tutores: consulta (solo administrativo). Se dan de alta junto con el alumno.
-import { h, clear, spinner, esc, guard } from '../ui.js';
+import { h, clear, spinner, esc, guard, downloadXlsx, slug } from '../ui.js';
 import { state, sid } from '../state.js';
 import { rpc } from '../api.js';
-import { searchKey, errMsg, PARENTESCOS, parentLists } from '../logic.js';
+import { searchKey, errMsg, PARENTESCOS, parentLists, familias } from '../logic.js';
 import { openPrintPages } from '../printing.js';
 
 const FILAS_POR_HOJA = 24;
@@ -39,11 +39,28 @@ async function printParentLists(tutors, opts) {
 }
 
 export function render(root) {
-  let rows = [];
+  let rows = [], vista = 'alumno';
   const q = h('input', { class: 'input', type: 'search', placeholder: 'Buscar tutor, CURP o alumno…' });
   const info = h('div', { class: 'muted' });
   const list = h('div', { class: 'table-wrap' });
+  const solo = h('input', { type: 'checkbox', checked: true, onchange: () => draw() });
+  const tiles = h('div', { class: 'sum-cards' });
+  const fam = () => familias(rows, { soloMultiples: solo.checked });
+  const drawFam = () => {
+    const words = searchKey(q.value).split(' ').filter(Boolean);
+    const { lista, resumen } = fam();
+    const f = lista.filter(t => words.every(w => searchKey(`${t.nombre} ${t.curp} ${t.hijos.map(a => a.nombre).join(' ')}`).includes(w)));
+    clear(tiles).append(...[['Tutores', resumen.total, ''], ['Con 1 hijo', resumen.uno, ''], ['Con 2 o más hijos', resumen.multiples, 'warn']].map(([t, n, c]) => h('div', { class: 'cnt ' + c }, h('b', null, String(n)), h('span', null, t))));
+    info.textContent = `${f.length} tutor(es)`;
+    clear(list);
+    if (!f.length) { list.append(h('div', { class: 'empty' }, rows.length ? 'Sin resultados' : 'Aún no hay tutores.')); return; }
+    list.append(...f.slice(0, 300).map(t => h('div', { class: 'card' },
+      h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: '.5rem' } }, h('b', null, t.nombre), h('span', { class: 'badge' }, `${t.hijos.length} hijo${t.hijos.length > 1 ? 's' : ''}`)),
+      ...t.hijos.map(a => h('div', { class: 'small' }, `${a.nombre} · ${a.grado}° ${a.grupo} · ${PARENTESCOS[a.parentesco] || 'Tutor(a)'}`)))));
+  };
   const draw = () => {
+    if (vista === 'familia') { drawFam(); return; }
+    clear(tiles);
     const words = searchKey(q.value).split(' ').filter(Boolean);
     const f = rows.filter(t => words.every(w => searchKey(`${t.nombre} ${t.curp || ''} ${(t.hijos || []).map(a => a.nombre).join(' ')}`).includes(w)));
     info.textContent = `${f.length} tutor(es)`;
@@ -64,9 +81,20 @@ export function render(root) {
   const panel = h('div', { class: 'card', hidden: true }, h('p', { class: 'muted' }, 'Una hoja de asistencia por grupo (24 alumnos por hoja) con el formato de la escuela: nombre, tutor y firma. Fecha, hora y asunto son opcionales: si los dejas vacíos, no se imprimen.'),
     h('div', { class: 'filters' }, gSel, pSel), h('div', { class: 'grid3' }, h('label', { class: 'field' }, h('span', null, 'Fecha de la reunión'), fecha), h('label', { class: 'field' }, h('span', null, 'Hora'), hora), h('label', { class: 'field' }, h('span', null, 'Asunto'), asunto)),
     h('div', { class: 'btn-row' }, go));
+  const segA = h('button', { class: 'btn primary', onclick: () => setV('alumno') }, 'Alumno → Tutor'), segF = h('button', { class: 'btn', onclick: () => setV('familia') }, 'Tutor → Hijos');
+  const xl = h('button', { class: 'btn' }, 'Descargar Excel'), pr = h('button', { class: 'btn' }, 'Imprimir');
+  xl.onclick = () => guard(xl, () => downloadXlsx(`tutores_con_hijos_${slug(state.school.name)}.xlsx`, [{ name: 'Tutores', columns: [{ header: 'Tutor', key: 't', width: 34 }, { header: 'Hijos', key: 'n', width: 7 }, { header: 'Alumno', key: 'a', width: 36 }, { header: 'Grupo', key: 'g', width: 9 }],
+    rows: fam().lista.flatMap(t => t.hijos.map((a, i) => ({ t: i ? '' : t.nombre, n: i ? '' : t.hijos.length, a: a.nombre, g: `${a.grado}° ${a.grupo}` }))) }], [state.school.name, 'Tutores con sus hijos']));
+  pr.onclick = () => {
+    const up = t => esc(String(t ?? '').toLocaleUpperCase('es-MX'));
+    const l = fam().lista;
+    openPrintPages([h('div', { class: 'print-page', html: `<h3>${up(state.school.name)}</h3><h4>TUTORES CON SUS HIJOS${solo.checked ? ' (2 O MÁS)' : ''}</h4>` + l.map(t => `<div style="break-inside:avoid;margin:0 0 8px"><b>${up(t.nombre)}</b> — ${t.hijos.length} hijo(s)${t.hijos.map(a => `<div style="margin-left:14px">${up(a.nombre)} · ${esc(a.grado)}° ${esc(a.grupo)}</div>`).join('')}</div>`).join('') })], 'Tutores con sus hijos');
+  };
+  const famBar = h('div', { class: 'filters', hidden: true }, h('label', { class: 'chk' }, solo, ' Solo tutores con 2 o más hijos'), xl, pr);
+  function setV(v) { vista = v; segA.className = 'btn' + (v === 'alumno' ? ' primary' : ''); segF.className = 'btn' + (v === 'familia' ? ' primary' : ''); famBar.hidden = v !== 'familia'; draw(); }
   const toggle = h('button', { class: 'btn', onclick: () => { panel.hidden = !panel.hidden; } }, 'Lista de padres de familia');
-  root.append(h('section', { class: 'view' }, h('div', { class: 'view-head' }, h('h2', null, 'Tutores'), toggle, h('a', { class: 'btn', href: '#/students' }, 'Ir a Alumnos')), panel,
-    h('p', { class: 'muted' }, 'Solo consulta. Los tutores se agregan o corrigen desde el alumno (o en el Excel de alumnos).'), h('div', { class: 'filters' }, q), info, list));
+  root.append(h('section', { class: 'view' }, h('div', { class: 'view-head' }, h('h2', null, 'Tutores'), segA, segF, toggle, h('a', { class: 'btn', href: '#/students' }, 'Ir a Alumnos')), panel,
+    h('p', { class: 'muted' }, 'Solo consulta. Los tutores se agregan o corrigen desde el alumno (o en el Excel de alumnos).'), h('div', { class: 'filters' }, q), famBar, tiles, info, list));
   clear(list).append(spinner());
   rpc('list_tutors', { p_school: sid() }).then(r => { rows = r; draw(); }).catch(e => clear(list).append(h('div', { class: 'empty' }, errMsg(e))));
 }

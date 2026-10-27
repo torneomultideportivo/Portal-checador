@@ -77,6 +77,13 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 - Hasta 4 administrativos por escuela, todos con los mismos permisos. Una clave ADM nueva suma a otro; ya no reemplaza al actual.
 - En "Usuarios y roles" el administrativo genera claves, agrega prefectos como administrativos y da de baja a otros. Nunca se puede dar de baja al último.
 
+## Tutores con sus hijos y baja definitiva de alumnos (v2.9.0)
+
+- **Tutores → "Tutor → Hijos"**: cada tutor con todos sus hijos y su grupo, aunque estén en grupos distintos. Casilla "Solo tutores con 2 o más hijos", totales arriba, Excel e impresión.
+- **Alumnos → "Dar de baja y eliminar…"**: borra al alumno de forma definitiva en 3 pasos (motivo → aviso con descarga de su historial → escribir su nombre exacto). Borra también su asistencia y alarmas; si su tutor se queda sin hijos, también se borra. Solo el administrativo puede. La bitácora guarda motivo y grupo, sin el nombre.
+- "Dar de baja" anterior ahora se llama **"Desactivar (conserva historial)"**.
+- **Base de datos**: ejecutar `supabase/schema_v7.sql` en Supabase (una sola vez; no cambia nada más).
+
 ## Formatos de citatorios, avisos, credencial y lista de padres (v2.8.0)
 
 - **Antes de subir:** ejecutar en Supabase (SQL Editor) el archivo `supabase/schema_v6.sql` (una sola vez; se puede repetir). Agrega la clave interna de la escuela, el segundo firmante y el encabezado de varias líneas.

@@ -1,5 +1,5 @@
 // Alumnos: lista con tutores, alta individual, edición, baja y reposición del QR.
-import { h, clear, toast, modal, confirmBox, guard, spinner } from '../ui.js';
+import { h, clear, toast, modal, confirmBox, guard, spinner, downloadXlsx, slug } from '../ui.js';
 import { state, sid } from '../state.js';
 import { sb, rpc, fetchAll } from '../api.js';
 import { cmpStudent, searchKey, errMsg, norm, CURP_RE, normParentesco, PARENTESCOS, fmtDate } from '../logic.js';
@@ -91,10 +91,11 @@ export function render(root) {
             await guard(ev.currentTarget, async () => { await rpc('regenerate_qr', { p_school: sid(), p_student: s.id }); toast('QR regenerado. Imprime el nuevo en "QR y credenciales".', 'ok', 5000); });
           } }, 'Reposición de QR'),
           h('button', { class: 'btn small ' + (s.active ? 'danger' : ''), onclick: async ev => {
-            const ok = await confirmBox(s.active ? `¿Dar de baja a ${s.nombre}? Conserva su historial pero ya no podrá registrar entrada.` : `¿Reactivar a ${s.nombre}?`, { ok: s.active ? 'Dar de baja' : 'Reactivar', danger: s.active });
+            const ok = await confirmBox(s.active ? `¿Desactivar a ${s.nombre}? Conserva su historial pero ya no podrá registrar entrada. (Para borrarlo definitivamente usa "Dar de baja y eliminar".)` : `¿Reactivar a ${s.nombre}?`, { ok: s.active ? 'Desactivar' : 'Reactivar', danger: s.active });
             if (!ok) return;
             await guard(ev.currentTarget, async () => { await rpc('save_student2', { p_school: sid(), p_id: s.id, p: { apellido_paterno: s.apellido_paterno, apellido_materno: s.apellido_materno, nombres: s.nombres, grado: s.grado, grupo: s.grupo, active: !s.active } }); m.close(); toast('Listo', 'ok'); await reload(); refreshRoster().catch(() => {}); });
-          } }, s.active ? 'Dar de baja' : 'Reactivar'))),
+          } }, s.active ? 'Desactivar (conserva historial)' : 'Reactivar'),
+          h('button', { class: 'btn small danger', onclick: () => { m.close(); eliminar(s); } }, 'Dar de baja y eliminar…'))),
       actions: [h('button', { class: 'btn', onclick: () => m.close() }, 'Cancelar'), save],
     });
     save.onclick = () => guard(save, async () => {
@@ -106,6 +107,54 @@ export function render(root) {
       await rpc('save_student2', { p_school: sid(), p_id: s ? s.id : null, p: { apellido_paterno: ap.value, apellido_materno: am.value, nombres: nom.value, grado: grado.value, grupo: grupo.value, curp: c, lengua_indigena: lengua.value, tutores, active: s ? s.active : true } });
       m.close(); toast('Guardado', 'ok'); await reload(); refreshRoster().catch(() => {});
     });
+  }
+
+  // Baja definitiva en 3 pasos: motivo → aviso y respaldo → escribir el nombre exacto.
+  function eliminar(s) {
+    const MOT = [['CAMBIO_ESCUELA', 'Cambio de escuela'], ['CAMBIO_DOMICILIO', 'Cambio de domicilio'], ['ABANDONO', 'Abandono escolar'], ['OTRO', 'Otro']];
+    const body = h('div', { class: 'form' });
+    const cancel = h('button', { class: 'btn', onclick: () => m.close() }, 'Cancelar');
+    const next = h('button', { class: 'btn primary' }, 'Continuar');
+    const m = modal({ title: `Dar de baja a ${s.nombre}`, body, actions: [cancel, next], locked: true });
+    const setActions = (...b) => { const bar = next.parentElement; clear(bar).append(cancel, ...b); };
+    const paso1 = () => {
+      const sel = h('select', { class: 'input' }, h('option', { value: '' }, 'Elige un motivo…'), ...MOT.map(([k, t]) => h('option', { value: k }, t)));
+      const go = h('button', { class: 'btn primary', disabled: true }, 'Continuar');
+      sel.onchange = () => { go.disabled = !sel.value; };
+      go.onclick = () => paso2(sel.value);
+      clear(body).append(h('p', { class: 'muted' }, 'Paso 1 de 3'), h('label', { class: 'field' }, h('span', null, '¿Por qué se da de baja?'), sel));
+      setActions(go);
+    };
+    const paso2 = motivo => {
+      const ck = h('input', { type: 'checkbox' });
+      const go = h('button', { class: 'btn primary', disabled: true }, 'Continuar');
+      ck.onchange = () => { go.disabled = !ck.checked; };
+      const dl = h('button', { class: 'btn' }, 'Descargar su historial');
+      dl.onclick = () => guard(dl, async () => {
+        const r = await rpc('student_history', { p_school: sid(), p_student: s.id, p_from: '2000-01-01', p_to: '2100-01-01' });
+        await downloadXlsx(`historial_${slug(s.nombre)}.xlsx`, [{ name: 'Registros', columns: [{ header: 'Fecha', key: 'f', width: 12 }, { header: 'Estado', key: 's', width: 12 }, { header: 'Min. retardo', key: 'm', width: 12 }, { header: 'Método', key: 'me', width: 10 }],
+          rows: r.registros.map(x => ({ f: fmtDate(x.fecha), s: x.status, m: x.late_minutes, me: x.method })) }], [s.nombre, `${s.grado}° ${s.grupo}`]);
+      });
+      go.onclick = () => paso3(motivo);
+      clear(body).append(h('p', { class: 'muted' }, 'Paso 2 de 3'),
+        h('div', { class: 'note bad' }, `Se borrará PARA SIEMPRE a ${s.nombre}, con su QR, su CURP y todo su historial de asistencia. No se puede deshacer.`),
+        h('div', { class: 'btn-row' }, dl), h('label', { class: 'chk' }, ck, ' Ya descargué su historial (si lo necesito) y quiero continuar'));
+      setActions(go);
+    };
+    const paso3 = motivo => {
+      const inp = h('input', { class: 'input', placeholder: 'Escribe el nombre completo', autocomplete: 'off' });
+      const del = h('button', { class: 'btn danger', disabled: true }, 'Eliminar definitivamente');
+      const same = () => norm(inp.value) === norm(s.nombre);
+      inp.oninput = () => { del.disabled = !same(); };
+      del.onclick = () => guard(del, async () => {
+        if (!same()) return;
+        const r = await rpc('delete_student', { p_school: sid(), p_student: s.id, p_motivo: motivo, p_confirm: inp.value });
+        m.close(); toast(`Alumno eliminado${r?.tutores_borrados ? ' (y su tutor, que ya no tenía más hijos)' : ''}`, 'ok', 5000); await reload(); refreshRoster().catch(() => {});
+      });
+      clear(body).append(h('p', { class: 'muted' }, 'Paso 3 de 3'), h('p', null, 'Para confirmar, escribe exactamente: ', h('b', null, s.nombre)), inp);
+      setActions(del);
+    };
+    paso1();
   }
 
   [q, gSel, pSel].forEach(el => el.addEventListener('input', () => { shown = 80; draw(); }));
