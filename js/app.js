@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.9.0';
+const VERSION = '2.9.1';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 

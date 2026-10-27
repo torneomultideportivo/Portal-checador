@@ -79,6 +79,7 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 
 ## Tutores con sus hijos y baja definitiva de alumnos (v2.9.0)
 
+- (v2.9.1) **Tutores → "Imprimir ▾"**: panel con 3 hojas, todas con el encabezado de la escuela y en orden alfabético (apellido paterno, materno y nombre): 1 Alumno → Tutor, 2 Tutor → Hijos (con rayas y columna de firma) y 3 Lista de padres de familia.
 - **Tutores → "Tutor → Hijos"**: cada tutor con todos sus hijos y su grupo, aunque estén en grupos distintos. Casilla "Solo tutores con 2 o más hijos", totales arriba, Excel e impresión.
 - **Alumnos → "Dar de baja y eliminar…"**: borra al alumno de forma definitiva en 3 pasos (motivo → aviso con descarga de su historial → escribir su nombre exacto). Borra también su asistencia y alarmas; si su tutor se queda sin hijos, también se borra. Solo el administrativo puede. La bitácora guarda motivo y grupo, sin el nombre.
 - "Dar de baja" anterior ahora se llama **"Desactivar (conserva historial)"**.

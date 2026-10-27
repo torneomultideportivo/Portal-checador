@@ -533,10 +533,10 @@ export function familias(tutors, { soloMultiples = false } = {}) {
   }
   const cmp = (x, y) => String(x).localeCompare(String(y), 'es', { numeric: true });
   const all = [...map.values()].map(f => ({ nombre: f.nombre, curp: f.curp,
-    hijos: [...f.hijos.values()].sort((a, b) => cmp(a.grado, b.grado) || cmp(a.grupo, b.grupo) || cmp(a.nombre, b.nombre)) }))
+    hijos: [...f.hijos.values()].sort((a, b) => cmp(a.nombre, b.nombre)) }))
     .filter(f => f.hijos.length);
   const resumen = { total: all.length, uno: all.filter(f => f.hijos.length === 1).length, multiples: all.filter(f => f.hijos.length >= 2).length };
   const lista = (soloMultiples ? all.filter(f => f.hijos.length >= 2) : all)
-    .sort((a, b) => b.hijos.length - a.hijos.length || cmp(a.nombre, b.nombre));
+    .sort((a, b) => cmp(a.nombre, b.nombre));   // alfabético (el nombre ya empieza por apellido paterno y materno)
   return { lista, resumen };
 }
