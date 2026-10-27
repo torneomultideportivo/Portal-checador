@@ -231,14 +231,39 @@ label.check { flex-direction: row !important; align-items: center; gap: .4rem; f
 .ctg-firma { margin-top: auto; text-align: center; line-height: 1.15; display: flex; flex-direction: column; align-items: center; }
 .ctg-firma span { width: 7.5cm; border-top: .2mm solid #000; margin: 1.1cm 0 .08cm; }
 
-/* lista de asistencia de padres de familia: carta, 22 renglones */
-.print-page.lp-page { width: 21.59cm; min-height: 27.94cm; padding: 1.2cm 1.5cm; display: block; color: #000; position: relative; font-size: 9.5pt; }
-.lp-titulo { text-align: center; font-weight: 900; letter-spacing: .08em; font-size: 12pt; margin: .35cm 0 .25cm; }
-.lp-datos { display: flex; gap: 1cm; flex-wrap: wrap; margin: .1cm 0; }
-.lp-tabla { width: 100%; border-collapse: collapse; margin-top: .3cm; }
-.lp-tabla th, .lp-tabla td { border: .25mm solid #000; padding: 0 .15cm; height: .75cm; font-size: 8.5pt; }
-.lp-tabla th { background: #eee; font-size: 8pt; height: .7cm; }
-.lp-tabla td.n { width: 1cm; text-align: center; } .lp-tabla td.f { width: 5.2cm; }
-.lp-pie { display: flex; flex-direction: column; align-items: center; margin-top: .7cm; } .lp-pie span { border-top: .2mm solid #000; width: 7cm; } .lp-pie small { font-size: 7.5pt; }
-.lp-hoja { position: absolute; bottom: .7cm; right: 1.5cm; font-size: 7.5pt; color: #444; }
+/* citatorios y avisos por tipo (3 por hoja carta) */
+.citatorio.ctn { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; line-height: 1.3; padding: .5cm 1.4cm .3cm; }
+.ctn .ct-head { align-items: flex-start; } .ctn .ct-title { font-size: 7.5pt; line-height: 1.25; }
+.ctn-name { font-family: 'Brush Script MT', 'Segoe Script', 'Lucida Handwriting', cursive; font-style: italic; font-size: 14pt !important; margin: .05cm 0; }
+.ctn-asunto { text-align: right; font-size: 8.5pt; margin-top: .05cm; } .ctn-asunto b { letter-spacing: .02em; }
+.ctn-fecha { text-align: right; font-size: 8.5pt; margin-bottom: .15cm; }
+.ctn-dest { font-size: 8.5pt; line-height: 1.25; } .ctn-pres { letter-spacing: .1em; margin: .02cm 0 .1cm; }
+.ctn-blank { display: inline-block; width: 8cm; border-bottom: .2mm solid #000; }
+.ctn-cuerpo { text-align: justify; text-indent: 1cm; margin: .05cm 0; font-family: 'Times New Roman', Times, serif; font-size: 9pt; line-height: 1.28; }
+.ctn-aten { text-align: center; font-size: 8.5pt; margin-top: .1cm; }
+.ctn-firmas { margin-top: auto; } .ctn-firmas > div { align-items: center; } .ctn-firmas span { width: 6cm; border-top: .2mm solid #000; margin-top: .55cm; } .ctn-firmas b { font-size: 8pt; } .ctn-firmas small { font-size: 7.5pt; }
+
+/* lista de asistencia de padres de familia: formato de la escuela, carta */
+.print-page.lp-page { width: 21.59cm; min-height: 27.94cm; padding: 1.2cm 1.6cm; display: block; color: #000; position: relative; font-family: Arial, Helvetica, sans-serif; }
+.lp-head { display: flex; align-items: center; gap: .4cm; border-bottom: .3mm solid #000; padding-bottom: .15cm; }
+.lp-inst { flex: 1; text-align: center; font-size: 8pt; line-height: 1.35; }
+.lp-logo { width: 2.6cm; height: 2.6cm; object-fit: contain; flex: none; }
+.lp-titulo { display: flex; justify-content: space-between; font-size: 9.5pt; margin: .4cm 0 .15cm; padding: 0 .2cm; }
+.lp-datos { font-size: 8.5pt; margin: 0 .2cm .15cm; }
+.lp-tabla { width: 100%; border-collapse: collapse; }
+.lp-tabla th, .lp-tabla td { border: .25mm solid #000; padding: .03cm .15cm; height: .78cm; font-size: 8.5pt; text-align: left; vertical-align: middle; }
+.lp-tabla th { font-size: 9.5pt; height: .75cm; } .lp-tabla td.t { font-size: 7.5pt; line-height: 1.1; } .lp-tabla td:first-child { width: 7.7cm; } .lp-tabla th:last-child, .lp-tabla td:last-child { width: 4.8cm; }
+.lp-hoja { position: absolute; bottom: .7cm; right: 1.6cm; font-size: 7.5pt; color: #444; }
 @media print { .print-page.lp-page { width: 21.59cm; min-height: 0; height: 27.94cm; } }
+
+/* credencial completa: 8 por hoja carta (2 × 4) */
+.print-page.cred-page { width: 21.59cm; min-height: 27.94cm; padding: .5cm .55cm; display: grid; grid-template-columns: repeat(2, 10.2cm); grid-auto-rows: 6.4cm; gap: .3cm .3cm; justify-content: center; align-content: start; }
+.cred { position: relative; border: .5mm solid #000; width: 10.2cm; height: 6.4cm; color: #000; font-family: Arial, Helvetica, sans-serif; font-weight: 700; break-inside: avoid; overflow: hidden; }
+.cred-head { text-align: center; font-size: 7.5pt; line-height: 1.35; padding: .25cm 2cm 0 .4cm; }
+.cred-logo { position: absolute; top: .2cm; right: .2cm; width: 1.7cm; height: 1.7cm; object-fit: contain; }
+.cred-foto { position: absolute; left: .4cm; top: 2.0cm; width: 2.6cm; height: 3.3cm; border: .5mm solid #000; }
+.cred-cuerpo { position: absolute; left: 3.3cm; right: .3cm; top: 2.0cm; text-align: center; font-size: 7.2pt; line-height: 1.5; }
+.cred-nombre { display: block; font-size: 10pt; text-decoration: underline; margin: .18cm 0 .15cm; line-height: 1.15; }
+.cred-aut { margin-top: .35cm; }
+.cred-qr { position: absolute; right: .3cm; bottom: .25cm; width: 1.7cm; height: 1.7cm; } .cred-qr svg { width: 100%; height: 100%; display: block; }
+@media print { .print-page.cred-page { width: 21.59cm; min-height: 0; height: 27.94cm; } }

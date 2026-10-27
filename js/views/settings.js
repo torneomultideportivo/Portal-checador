@@ -86,12 +86,13 @@ function extraForm(s) {
   const lateN = inp(s.citation_late_min ?? 3, { type: 'number', min: 1 }), absN = inp(s.citation_absent_min ?? 3, { type: 'number', min: 1 });
   const logos = { logo_ieepo: undefined, logo_school: undefined };
   const assetsP = rpc('school_assets', { p_school: sid() }).catch(() => null);   // logos y textos del citatorio
-  const headerLine = inp('', { placeholder: 'Opcional. Ej. Secretaría o instituto de la entidad' });
+  const headerLine = h('textarea', { class: 'input', rows: 3, maxlength: 300, placeholder: 'Una línea por renglón. Ej.\nINSTITUTO ESTATAL DE EDUCACIÓN PÚBLICA DE OAXACA\nSUBDIRECCIÓN GENERAL DE EDUCACIÓN SECUNDARIA' });
+  const internalKey = inp('', { placeholder: 'Ej. ES-372-61' });
+  const signer2 = inp('', { placeholder: 'Ej. C. Macedonio Ramírez Rojas' }), signer2T = inp('', { placeholder: 'Ej. PRESIDENTE DEL COMITÉ DE PADRES DE FAMILIA' });
   const placeLine = inp('', { placeholder: 'Ej. SANTA MARÍA PEÑOLES, ETLA, OAX.' });
   const dirTitle = inp('', { placeholder: 'Ej. DIRECTORA DE LA ESCUELA' });
-  const citText = h('textarea', { class: 'input', rows: 4, maxlength: 800, placeholder: 'Déjalo vacío para usar el texto estándar.' });
   let assetsReady = false;
-  assetsP.then(a => { if (!a) return; headerLine.value = a.header_line || ''; placeLine.value = a.place_line || ''; dirTitle.value = a.director_title || ''; citText.value = a.citation_text || ''; assetsReady = true; });
+  assetsP.then(a => { if (!a) return; headerLine.value = a.header_line || ''; placeLine.value = a.place_line || ''; dirTitle.value = a.director_title || ''; internalKey.value = a.internal_key || ''; signer2.value = a.second_signer || ''; signer2T.value = a.second_signer_title || ''; assetsReady = true; });
   const logoBox = (key, label) => {
     const prev = h('div', { class: 'logo-prev' }, s['has_' + key] || s[key] ? 'Ya hay un logo guardado' : 'Sin logo');
     const showImg = src => clear(prev).append(h('img', { src, alt: label, style: { maxHeight: '70px' } }));
@@ -106,10 +107,12 @@ function extraForm(s) {
     h('h3', null, 'Datos para citatorios y credenciales'),
     f('Domicilio de la escuela', address), h('div', { class: 'grid3' }, f('Código postal', cp), f('Teléfono del director(a)', dph), f('Teléfono del subdirector(a)', sph)),
     h('div', { class: 'grid2' }, logoBox('logo_ieepo', 'Logotipo IEEPO (izquierda)'), logoBox('logo_school', 'Logotipo de la escuela (derecha)')),
-    h('h3', null, 'Formato del citatorio general'),
-    h('p', { class: 'muted small' }, 'El citatorio se arma solo con los datos de la escuela (nombre, CCT, logotipos, director). Aquí ajustas lo que cambia de una escuela a otra.'),
-    f('Línea extra del encabezado', headerLine), h('div', { class: 'grid2' }, f('Lugar para la fecha', placeLine, 'Sale como "LUGAR, A 25 DE OCTUBRE DEL 2026".'), f('Cargo en la firma', dirTitle)),
-    f('Texto del citatorio', citText, 'Puedes usar {fecha_cita} y {hora}; se llenan solos. Vacío = "Por medio del presente se le cita a usted, en esta institución educativa, el día … a las … hrs. para tratar asuntos relacionados con la educación de su hijo(a) o tutorado."'),
+    h('h3', null, 'Formato de citatorios, avisos, credenciales y listas'),
+    h('p', { class: 'muted small' }, 'Los documentos se arman solos con los datos de la escuela (nombre, CCT, ciclo, logotipos, director) y de los alumnos. Aquí ajustas lo que cambia de una escuela a otra.'),
+    f('Encabezado institucional', headerLine, 'Una línea por renglón. Sale en las listas y en las credenciales; la primera línea también se usa en el texto de los citatorios ("dependiente del …").'),
+    h('div', { class: 'grid2' }, f('Clave interna de la escuela', internalKey, 'Sale junto al CCT: "CLAVES: ES-372-61 Y 20DES0047Y".'), f('Lugar para la fecha', placeLine, 'Sale como "Santa María Peñoles, Etla, Oax., a 25 de octubre del 2026".')),
+    f('Cargo en la firma del director(a)', dirTitle, 'Ej. DIRECTORA DE LA ESCUELA o ENCARGADO DE LA ESCUELA.'),
+    h('div', { class: 'grid2' }, f('Segundo firmante (opcional)', signer2, 'Para los citatorios que llevan dos firmas, p. ej. el comité de padres.'), f('Cargo del segundo firmante', signer2T)),
     h('h3', null, 'Entrada del personal con QR'),
     h('label', { class: 'chk big' }, sw, ' Activar el registro de entrada del personal con QR en esta escuela'),
     h('p', { class: 'muted small' }, 'Encendido: todo el personal (también el que llegue después) debe escanear su QR al entrar, cada quien contra su propia hora de entrada. Apagado: el QR del personal avisa "no activada" y no registra nada.'),
@@ -120,7 +123,7 @@ function extraForm(s) {
   const values = () => {
     const v = { address: address.value, postal_code: cp.value, director_phone: dph.value, subdirector_phone: sph.value, staff_qr_enabled: sw.checked,
       staff_tolerance_min: Number(stol.value || 0), alarm_minutes: Number(alarm.value || 10), citation_late_min: Number(lateN.value || 3), citation_absent_min: Number(absN.value || 3) };
-    if (assetsReady) Object.assign(v, { header_line: headerLine.value, place_line: placeLine.value, director_title: dirTitle.value, citation_text: citText.value });
+    if (assetsReady) Object.assign(v, { header_line: headerLine.value, place_line: placeLine.value, director_title: dirTitle.value, internal_key: internalKey.value, second_signer: signer2.value, second_signer_title: signer2T.value });
     for (const k of Object.keys(logos)) if (logos[k]) v[k] = logos[k];
     return v;
   };

@@ -76,3 +76,11 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 - Base de datos ya instalada: ejecutar **supabase/schema_v4.sql** (formato del citatorio) y luego **supabase/schema_v5.sql** (varios administrativos). Cada uno se puede repetir sin riesgo.
 - Hasta 4 administrativos por escuela, todos con los mismos permisos. Una clave ADM nueva suma a otro; ya no reemplaza al actual.
 - En "Usuarios y roles" el administrativo genera claves, agrega prefectos como administrativos y da de baja a otros. Nunca se puede dar de baja al último.
+
+## Formatos de citatorios, avisos, credencial y lista de padres (v2.8.0)
+
+- **Antes de subir:** ejecutar en Supabase (SQL Editor) el archivo `supabase/schema_v6.sql` (una sola vez; se puede repetir). Agrega la clave interna de la escuela, el segundo firmante y el encabezado de varias líneas.
+- **Configuración → "Formato de citatorios, avisos, credenciales y listas":** encabezado institucional (una línea por renglón), clave interna (ej. ES-372-61), lugar de la fecha, cargo del director(a) y segundo firmante (p. ej. presidente del comité). Cada escuela captura los suyos; todo lo demás sale de la lista de alumnos y tutores.
+- **Citatorios y avisos:** nueve tipos (por la educación del hijo, por conducta, urgente con el comité, solicitud de documentos, general, reunión general, reunión de comité, cita de urgencia y aviso general). Se imprimen 3 por hoja, con el nombre del tutor y del alumno, o en blanco (N copias). El texto se puede ajustar antes de imprimir.
+- **Tutores → Lista de padres de familia:** hoja de asistencia por grupo (24 alumnos por hoja) con el formato de la escuela.
+- **QR y credenciales → Credenciales completas:** 8 por hoja carta, con espacio para la fotografía y el QR a la derecha.

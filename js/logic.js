@@ -471,3 +471,53 @@ export function parentLists(tutors, { grado = '', grupo = '' } = {}) {
     .sort((a, b) => cmp(a.grado, b.grado) || cmp(a.grupo, b.grupo))
     .map(g => ({ ...g, alumnos: g.alumnos.sort((a, b) => cmp(a.nombre, b.nombre)) }));
 }
+
+// ---------- Citatorios y avisos por tipo (los textos se llenan solos con los datos de la escuela) ----------
+// campos: qué datos extra pide la pantalla para ese tipo. por: 'alumno' = el texto nombra al alumno; 'general' = no.
+export const CITA_TIPOS = [
+  { id: 'educacion', nombre: 'Citatorio por la educación de su hijo(a)', asunto: 'CITATORIO', por: 'alumno', dest: ['PADRE DE FAMILIA.'], firmas: 1, lugar: 'la dirección de la escuela', campos: ['lugar'],
+    texto: '{suscribe} Por medio del presente me dirijo a usted para CITARLO el día {fecha_larga} a las {hora} horas, en {lugar}, para tratar asuntos relacionados con la educación de su hijo(a) {alumno} del {grupo}. Es de suma importancia contar con su puntual asistencia, le envío un cordial saludo.' },
+  { id: 'conducta', nombre: 'Citatorio por conducta (trabajo social)', asunto: 'CITATORIO', por: 'alumno', dest: ['PADRE DE FAMILIA.'], firmas: 1, lugar: 'la oficina de trabajo social', campos: ['lugar'],
+    texto: '{suscribe} Por medio del presente me dirijo a usted para CITARLO el día {fecha_larga} a las {hora} horas, en {lugar}, para tratar asuntos relacionados con la conducta de su hijo(a) {alumno} del {grupo}. Es de suma importancia contar con su presencia y su puntual asistencia, le envío un cordial saludo.' },
+  { id: 'urgente', nombre: 'Citatorio urgente con el comité (alumno que ya no viene)', asunto: 'CITATORIO', por: 'alumno', dest: ['PADRE DE FAMILIA.'], firmas: 2, lugar: 'la dirección de la escuela', campos: ['lugar'],
+    texto: '{suscribe} Por medio del presente nos dirigimos a usted, en coordinación con el comité de padres de familia, para CITARLO el día {fecha_larga} a las {hora} horas, en {lugar}, para tratar asuntos urgentes relacionados con la educación de su hijo(a) {alumno}. Esperando contar con su presencia, reciba un saludo de antemano.' },
+  { id: 'documentos', nombre: 'Aviso: solicitud de documentos del alumno', asunto: 'AVISO', por: 'alumno', dest: ['PADRE DE FAMILIA.'], firmas: 1, lugar: '', campos: ['documento'], documento: 'el CERTIFICADO DE PRIMARIA',
+    texto: '{suscribe} Por medio del presente me dirijo a usted para SOLICITARLE de manera urgente, pueda enviar a la brevedad posible {documento} del alumno {alumno} del {grupo}. Sin más por el momento reciba un cordial saludo.' },
+  { id: 'general', nombre: 'Citatorio general (sin nombrar al alumno)', asunto: 'CITATORIO', por: 'general', dest: ['PADRE DE FAMILIA'], firmas: 1, lugar: 'la sala de reuniones de esta institución', campos: ['lugar'],
+    texto: '{suscribe} Por medio del presente se le cita el día {fecha_larga} a las {hora} horas en {lugar}, para tratar asuntos relacionados con la educación de su hijo(a). Por la atención prestada, agradecemos de antemano contar con su puntual asistencia.' },
+  { id: 'reunion', nombre: 'Reunión general (entrega de boletas o acuerdos)', asunto: 'CITATORIO', por: 'general', dest: ['PADRE DE FAMILIA Y ALUMNADO.'], firmas: 2, lugar: '', campos: ['motivo'], motivo: 'la entrega de calificaciones y firma de boletas',
+    texto: '{suscribe} Por medio del presente se le cita a usted, el día {fecha_larga}, a las {hora} horas a una reunión general, en la que se tratarán asuntos relacionados con la educación de su hijo(a), así como {motivo}. Es importante contar con su presencia ya que se tomarán acuerdos. Esperando su puntual asistencia, le agradezco de antemano.' },
+  { id: 'comite', nombre: 'Reunión de comité (La Escuela Es Nuestra)', asunto: 'CITATORIO', por: 'general', dest: ['PADRE DE FAMILIA', 'INTEGRANTE DEL COMITÉ DEL PROGRAMA “LA ESCUELA ES NUESTRA”'], firmas: 1, lugar: 'la dirección de la escuela', campos: ['lugar', 'motivo'], motivo: 'organizar el plan de trabajo a realizar en los próximos días',
+    texto: '{suscribe} Por medio del presente se le cita el día {fecha_larga} a las {hora} horas en {lugar}, a una reunión de comité y contraloría, para {motivo}. Por la atención prestada, agradecemos de antemano.' },
+  { id: 'urgencia', nombre: 'Cita de urgencia (trámites, vales, becas)', asunto: 'CITATORIO', por: 'general', dest: ['PADRE DE FAMILIA'], firmas: 1, lugar: '', campos: ['motivo'], motivo: 'para la firma de vales del programa',
+    texto: '{suscribe} Por medio del presente se le CITA DE URGENCIA el día {fecha_larga} a las {hora} horas, {motivo}. Es de suma importancia su asistencia. Sin más por el momento reciba un cordial saludo.' },
+  { id: 'aviso', nombre: 'Aviso general (suspensión de clases, etc.)', asunto: 'AVISO', por: 'general', dest: ['PADRE DE FAMILIA'], firmas: 1, lugar: '', campos: ['motivo'], motivo: 'el calendario escolar marca suspensión de clases el día ____',
+    texto: '{suscribe} Por medio del presente se le hace de su conocimiento que {motivo}. De antemano, gracias por su apoyo y comprensión.' },
+];
+
+const MESES_C = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+// "2026-09-14" → "lunes 14 de septiembre" (sin zona horaria: la fecha del calendario tal cual)
+export function fechaLarga(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${DIAS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${d} de ${MESES_C[m - 1]}`;
+}
+export function fechaCorta(iso) { const [y, m, d] = iso.split('-').map(Number); return `${d} de ${MESES_C[m - 1]} del ${y}`; }
+// "INSTITUTO ESTATAL DE EDUCACIÓN PÚBLICA DE OAXACA" → "Instituto Estatal de Educación Pública de Oaxaca"
+export function tituloEs(t) {
+  const chicas = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'en', 'a']);
+  return String(t || '').toLocaleLowerCase('es-MX').split(/\s+/).filter(Boolean).map((w, i) => (i && chicas.has(w)) ? w : w[0].toLocaleUpperCase('es-MX') + w.slice(1)).join(' ');
+}
+// Frase de arranque: "El que suscribe, Profr. X, Director de la Escuela … con claves: … dependiente del …."
+export function suscribe(school, assets = {}) {
+  const cargoP = String(assets.director_title || 'Director(a)').trim().split(/\s+/)[0] || 'Director(a)';
+  const cargo = tituloEs(cargoP);
+  const fem = /a$/i.test(cargoP) && !/\(a\)/i.test(cargoP);
+  const claves = [assets.internal_key, school.cct].filter(Boolean).join(' y ');
+  const dep = String(assets.header_line || '').split('\n').map(x => x.trim()).filter(Boolean)[0];
+  return `${fem ? 'La' : 'El'} que suscribe, ${school.director || ''}, ${cargo} de la ${school.name}${claves ? ` con claves: ${claves}` : ''}${dep ? `, dependiente del ${tituloEs(dep)}` : ''}.`;
+}
+// Sustituye {nombre} por su valor; lo que no tiene valor se deja tal cual para que se note.
+export function llenar(texto, vars) {
+  return String(texto || '').replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === '' ? m : vars[k]));
+}

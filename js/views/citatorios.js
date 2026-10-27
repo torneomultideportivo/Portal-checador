@@ -2,15 +2,12 @@
 import { h, clear, toast, guard, spinner, esc } from '../ui.js';
 import { state, sid } from '../state.js';
 import { rpc } from '../api.js';
-import { errMsg, groupFamilies, tutorLine, searchKey } from '../logic.js';
+import { errMsg, groupFamilies, tutorLine, searchKey, CITA_TIPOS, fechaLarga, fechaCorta, suscribe, llenar } from '../logic.js';
 import { openPrintPages } from '../printing.js';
 
 const longDate = iso => new Intl.DateTimeFormat('es-MX', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(iso + 'T12:00:00Z'));
 const todayLocal = () => new Intl.DateTimeFormat('en-CA', { timeZone: state.school?.timezone || 'America/Mexico_City' }).format(new Date());
 
-const MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const dmy = iso => { const [y, m, d] = iso.split('-').map(Number); return { y, m: MES[m - 1], d }; };
-const TEXTO_ESTANDAR = 'Por medio del presente se le cita a usted, en esta institución educativa, el día {fecha_cita} a las {hora} horas para tratar asuntos relacionados con la educación de su hijo(a) o tutorado.';
 
 export function missingGeneral(s) {
   return s.director ? [] : ['nombre del director(a)'];
@@ -41,31 +38,35 @@ function citatorioHtml(c, school, assets) {
   </div>`;
 }
 
-// Citatorio general: se arma solo con los datos de la escuela; solo se captura fecha y hora de la cita.
-function citatorioGeneralHtml(c, school, assets) {
+// Citatorio / aviso por tipo: encabezado, texto y firmas se arman solos con los datos de la escuela; el texto se puede ajustar al imprimir.
+const spaced = t => esc(String(t).split('').join(' '));
+function citatorioTipoHtml(c, school, assets) {
   const logo = (src, side) => src ? `<img class="ct-logo ${side}" src="${src}" alt="">` : `<div class="ct-logo ${side}"></div>`;
-  const up = t => esc(String(t ?? '').toLocaleUpperCase('es-MX'));
-  const e = dmy(c.elaboracion), q = dmy(c.fecha);
-  const lugar = assets.place_line || school.locality || '';
-  const cuerpo = (assets.citation_text || TEXTO_ESTANDAR).replace(/\{fecha_cita\}/g, `${q.d} de ${q.m}`).replace(/\{hora\}/g, c.hora);
-  const alumnos = c.hijos.map(s => s.nombre).join(" / "), grupos = [...new Set(c.hijos.map(s => `${s.grado}° ${s.grupo}`))].join(" / ");
-  return `<div class="citatorio ctg">
+  const tp = c.tipo, up = t => esc(String(t ?? '').toLocaleUpperCase('es-MX'));
+  const claves = [assets.internal_key, school.cct].filter(Boolean).join(' Y ');
+  const alumnos = c.hijos.length ? c.hijos.map(a => a.nombre).join(' / ') : '____________________';
+  const grupos = c.hijos.length ? [...new Set(c.hijos.map(a => `${a.grado}° “${a.grupo}”`))].join(' / ') : '______';
+  const cuerpo = llenar(c.cuerpo, { suscribe: suscribe(school, assets), alumno: alumnos, grupo: grupos });
+  const lugar = assets.place_line ? `${esc(assets.place_line)}, a ` : 'A ';
+  const firma = (nombre, cargo) => `<div><span></span><b>${up(nombre)}</b><small>${up(cargo)}</small></div>`;
+  const firmas = firma(school.director, assets.director_title || 'DIRECTOR(A) DE LA ESCUELA') + (tp.firmas === 2 ? firma(assets.second_signer || '', assets.second_signer_title || '') : '');
+  return `<div class="citatorio ctn">
     <div class="ct-head">${logo(assets.logo_ieepo, 'l')}
-      <div class="ct-title">${assets.header_line ? `<div>${up(assets.header_line)}</div>` : ''}<b>${up(school.name)}</b>${school.cct ? `<div>CCT. ${up(school.cct)}</div>` : ''}</div>
+      <div class="ct-title"><b class="ctn-name">${esc(school.name)}</b>${claves ? `<div>CLAVES: ${esc(claves)}</div>` : ''}${school.school_year ? `<div>CICLO ESCOLAR: ${esc(school.school_year)}</div>` : ''}</div>
       ${logo(assets.logo_school, 'r')}</div>
-    <div class="ctg-asunto"><b>ASUNTO: CITATORIO</b></div>
-    <div class="ctg-fecha">${lugar ? up(lugar) + ', A ' : 'A '}${e.d} DE ${up(e.m)} DEL ${e.y}.</div>
-    <p>C. <b>${up(tutorLine(c.tutores))}</b> PADRE DE FAMILIA O TUTOR</p>
-    <p>DEL ALUMNO (A): <b>${up(alumnos)}</b> DEL: <b>${esc(grupos)}</b></p>
-    <p class="ctg-cuerpo">${up(cuerpo)}</p>
-    <div class="ctg-firma"><div>ATENTAMENTE</div><span></span><b>${up(school.director)}</b><div>${up(assets.director_title || 'DIRECTOR(A) DE LA ESCUELA')}</div></div>
+    <div class="ctn-asunto">ASUNTO: <b>${spaced(tp.asunto)}</b></div>
+    <div class="ctn-fecha">${lugar}${esc(fechaCorta(c.elaboracion))}.</div>
+    <div class="ctn-dest">C. ${c.tutores.length ? `<b>${up(tutorLine(c.tutores))}</b>` : '<span class="ctn-blank"></span>'}${tp.dest.map(x => `<div><b>${up(x)}</b></div>`).join('')}<div class="ctn-pres"><b>${spaced('PRESENTE.')}</b></div></div>
+    <p class="ctn-cuerpo">${esc(cuerpo)}</p>
+    <div class="ctn-aten"><b>ATENTAMENTE</b></div>
+    <div class="ct-sign ctn-firmas ${tp.firmas === 2 ? 'dos' : ''}">${firmas}</div>
   </div>`;
 }
 
 export async function printCitatorios(items, school) {
   const assets = await rpc('school_assets', { p_school: sid() });
   const pages = [];
-  for (let i = 0; i < items.length; i += 3) pages.push(h('div', { class: 'print-page ct-page', html: items.slice(i, i + 3).map(c => (c.general ? citatorioGeneralHtml : citatorioHtml)(c, school, assets)).join('') }));
+  for (let i = 0; i < items.length; i += 3) pages.push(h('div', { class: 'print-page ct-page', html: items.slice(i, i + 3).map(c => (c.tipo ? citatorioTipoHtml : citatorioHtml)(c, school, assets)).join('') }));
   openPrintPages(pages, `${items.length} citatorio(s)`);
 }
 
@@ -78,6 +79,27 @@ export function render(root) {
   const family = h('input', { type: 'checkbox', checked: true });
   const gSel = h('select', { class: 'input' }, school.grades.map(g => h('option', { value: g }, `${g}°`)));
   const pSel = h('select', { class: 'input' }, school.groups.map(g => h('option', { value: g }, g)));
+  const tipoSel = h('select', { class: 'input' }, CITA_TIPOS.map(t => h('option', { value: t.id }, t.nombre)));
+  const lugar = h('input', { class: 'input' }), motivo = h('input', { class: 'input' }), documento = h('input', { class: 'input' });
+  const cuerpo = h('textarea', { class: 'input', rows: 6 });
+  const destSel = h('select', { class: 'input' }, h('option', { value: 'familias' }, 'Una por familia, con el nombre del tutor'), h('option', { value: 'blanco' }, 'En blanco (el nombre se escribe a mano)'));
+  const copias = h('input', { class: 'input', type: 'number', min: 1, max: 300, value: 30 });
+  const fLugar = h('label', { class: 'field' }, h('span', null, 'Lugar de la cita'), lugar), fMotivo = h('label', { class: 'field' }, h('span', null, 'Motivo'), motivo), fDoc = h('label', { class: 'field' }, h('span', null, 'Documento que se solicita'), documento);
+  const fCopias = h('label', { class: 'field' }, h('span', null, 'Cantidad de copias'), copias);
+  const tipoBox = h('div', { class: 'card' },
+    h('label', { class: 'field' }, h('span', null, 'Tipo de documento'), tipoSel),
+    h('div', { class: 'grid3' }, fLugar, fMotivo, fDoc),
+    h('div', { class: 'grid2' }, h('label', { class: 'field' }, h('span', null, 'Dirigido a'), destSel), fCopias),
+    h('label', { class: 'field' }, h('span', null, 'Texto (puedes ajustarlo antes de imprimir)'), cuerpo,
+      h('small', { class: 'muted' }, 'Se llenan solos: {suscribe} (quién firma y la escuela), {fecha_larga}, {hora}, {lugar}, {motivo}, {documento}, {alumno} y {grupo}.')));
+  const tipo = () => CITA_TIPOS.find(t => t.id === tipoSel.value);
+  function paintTipo(reset) {
+    const t = tipo();
+    if (reset) { lugar.value = t.lugar || ''; motivo.value = t.motivo || ''; documento.value = t.documento || ''; cuerpo.value = t.texto; }
+    fLugar.hidden = !t.campos.includes('lugar'); fMotivo.hidden = !t.campos.includes('motivo'); fDoc.hidden = !t.campos.includes('documento');
+    fCopias.hidden = destSel.value !== 'blanco';
+  }
+  tipoSel.addEventListener('change', () => paintTipo(true)); destSel.addEventListener('change', () => paintTipo(false));
   const body = h('div'), tabs = h('div', { class: 'tabs' });
   const go = h('button', { class: 'btn primary' }, 'Preparar citatorios');
   const missingNow = () => (mode === 'individual' ? missingData(school) : missingGeneral(school));
@@ -111,21 +133,36 @@ export function render(root) {
   }
   function drawMode() {
     clear(tabs).append(...[['general', 'Citatorio general · toda la escuela'], ['grupo', 'General · por grado y grupo'], ['individual', 'Con asunto (individual)']].map(([k, t]) => h('button', { class: mode === k ? 'on' : '', onclick: () => { mode = k; family.checked = k !== 'individual'; drawMode(); } }, t)));
-    asuntoBox.hidden = true; paintWarn();
+    asuntoBox.hidden = true; tipoBox.hidden = mode === 'individual'; paintTipo(!cuerpo.value); paintWarn();
     go.disabled = !!missingNow().length;
     if (mode === 'individual') loadSugg();
-    else clear(body).append(mode === 'grupo' ? h('div', { class: 'filters' }, gSel, pSel) : h('p', { class: 'muted' }, 'Un citatorio por familia de toda la escuela, con los datos de la escuela, el tutor y el alumno. Solo indica la fecha y la hora de la cita.'));
+    else clear(body).append(mode === 'grupo' ? h('div', { class: 'filters' }, gSel, pSel) : h('p', { class: 'muted' }, 'Elige el tipo de documento: se arma solo con los datos de la escuela, el tutor y el alumno. Solo indicas la fecha y la hora.'));
   }
   go.onclick = () => guard(go, async () => {
     
+    if (!fecha.value || !hora.value) throw new Error('Indica fecha y hora de la cita.');
+    if (mode !== 'individual') {
+      const t = tipo(), elab = todayLocal();
+      const texto = llenar(cuerpo.value, { fecha_larga: fechaLarga(fecha.value), fecha_cita: fechaLarga(fecha.value), hora: hora.value, lugar: lugar.value.trim(), motivo: motivo.value.trim(), documento: documento.value.trim() });
+      let items;
+      if (destSel.value === 'blanco') items = Array.from({ length: Math.max(1, Math.min(300, Number(copias.value) || 1)) }, () => ({ tutores: [], hijos: [], tipo: t, cuerpo: texto, elaboracion: elab }));
+      else {
+        const data = await rpc('citation_data', { p_school: sid(), p_ids: null, p_grado: mode === 'grupo' ? gSel.value : null, p_grupo: mode === 'grupo' ? pSel.value : null });
+        if (!data.length) throw new Error('No hay alumnos para citar.');
+        const fam = family.checked ? groupFamilies(data) : data.map(a => ({ tutores: a.tutores, hijos: [a] }));
+        items = fam.map(f => ({ ...f, tipo: t, cuerpo: texto, elaboracion: elab }));
+      }
+      await printCitatorios(items, school);
+      rpc('log_citations', { p_school: sid(), p_count: items.length, p_modo: `${mode}:${t.id}` }).catch(() => {});
+      return;
+    }
     const args = { p_school: sid(), p_ids: null, p_grado: null, p_grupo: null };
-    if (mode === 'individual') { if (!picked.size) throw new Error('Marca al menos un alumno.'); args.p_ids = [...picked.keys()]; }
-    if (mode === 'grupo') { args.p_grado = gSel.value; args.p_grupo = pSel.value; }
+    if (!picked.size) throw new Error('Marca al menos un alumno.');
+    args.p_ids = [...picked.keys()];
     const data = await rpc('citation_data', args);
     if (!data.length) throw new Error('No hay alumnos para citar.');
     const fam = family.checked ? groupFamilies(data) : data.map(s => ({ tutores: s.tutores, hijos: [s] }));
-    const items = fam.map(f => ({ ...f, fecha: fecha.value, hora: hora.value, asunto: mode === 'individual' ? f.hijos.map(s => picked.get(s.id)).filter(Boolean).join(' ') : '', general: mode !== 'individual', elaboracion: todayLocal() }));
-    if (!fecha.value || !hora.value) throw new Error('Indica fecha y hora de la cita.');
+    const items = fam.map(f => ({ ...f, fecha: fecha.value, hora: hora.value, asunto: f.hijos.map(s => picked.get(s.id)).filter(Boolean).join(' '), elaboracion: todayLocal() }));
     await printCitatorios(items, school);
     rpc('log_citations', { p_school: sid(), p_count: items.length, p_modo: mode }).catch(() => {});
   });
@@ -133,8 +170,8 @@ export function render(root) {
     const m = missingNow(); clear(warn);
     if (m.length) warn.append(h('div', { class: 'note bad' }, h('b', null, 'Faltan datos obligatorios en la escuela: '), m.join(', '), '. Captúralos en ', h('a', { href: '#/settings' }, 'Configuración'), ' para poder imprimir.'));
   }
-  root.append(h('section', { class: 'view' }, h('div', { class: 'view-head' }, h('h2', null, 'Citatorios')), warn,
-    tabs, h('div', { class: 'card' }, h('div', { class: 'grid3' }, h('label', { class: 'field' }, h('span', null, 'Fecha de la cita'), fecha), h('label', { class: 'field' }, h('span', null, 'Hora'), hora),
+  root.append(h('section', { class: 'view' }, h('div', { class: 'view-head' }, h('h2', null, 'Citatorios y avisos')), warn,
+    tabs, tipoBox, h('div', { class: 'card' }, h('div', { class: 'grid3' }, h('label', { class: 'field' }, h('span', null, 'Fecha de la cita'), fecha), h('label', { class: 'field' }, h('span', null, 'Hora'), hora),
       asuntoBox),
       h('label', { class: 'chk' }, family, ' Un solo citatorio por familia (hermanos juntos)')),
     body, h('div', { class: 'btn-row' }, go)));

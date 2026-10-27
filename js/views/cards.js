@@ -17,6 +17,30 @@ export function openStickers(people) {   // people: [{nombre, sub, token}]
   openPrintPages(pages, `${people.length} etiqueta(s) QR`, 'Imprime en hoja de etiquetas o papel adhesivo, tamaño Carta, escala 100 %, sin encabezados ni pies de página. Cada QR mide 3 × 3 cm.');
 }
 
+
+const CARDS_PER_PAGE = 8;
+// Credencial completa con el formato de la escuela: encabezado, datos del alumno y un espacio para la fotografía; el QR va a la derecha.
+export async function openCredentials(people, kind) {
+  const school = state.school;
+  const assets = await rpc('school_assets', { p_school: sid() });
+  const up = t => esc(String(t ?? '').toLocaleUpperCase('es-MX'));
+  const inst = String(assets.header_line || '').split('\n').map(x => x.trim()).filter(Boolean)[0];
+  const claves = [assets.internal_key, school.cct].filter(Boolean).map(up).join('&nbsp;&nbsp;&nbsp;');
+  const turno = school.turno ? up(school.turno) : '';
+  const card = p => `<div class="cred">
+    ${assets.logo_school ? `<img class="cred-logo" src="${assets.logo_school}" alt="">` : ''}
+    <div class="cred-head">${inst ? `<div>${up(inst)}</div>` : ''}<div>${up(school.name)}</div>${claves ? `<div>CLAVE: ${claves}</div>` : ''}${school.school_year ? `<div>CICLO ESCOLAR ${esc(school.school_year)}</div>` : ''}</div>
+    <div class="cred-foto"></div>
+    <div class="cred-cuerpo"><div>LA DIRECCIÓN DE LA ESCUELA ACREDITA A:</div><b class="cred-nombre">${up(p.nombre)}</b>
+      <div>${kind === 'alumnos' ? `COMO ALUMNO(A) DEL ${esc(p.grado)}° GRADO GRUPO “${esc(p.grupo)}”` : `COMO ${up(p.puesto || 'PERSONAL DE LA ESCUELA')}`}</div>${turno ? `<div>TURNO: ${turno}</div>` : ''}
+      <div class="cred-aut">AUTORIZÓ</div></div>
+    <div class="cred-qr">${qrSvg(qrPayload(p.qr_token))}</div>
+  </div>`;
+  const pages = [];
+  for (let i = 0; i < people.length; i += CARDS_PER_PAGE) pages.push(h('div', { class: 'print-page cred-page', html: people.slice(i, i + CARDS_PER_PAGE).map(card).join('') }));
+  openPrintPages(pages, `${people.length} credencial(es)`, 'Imprime en hoja Carta, escala 100 %, sin encabezados ni pies de página. Pega la fotografía en el recuadro y lamina cada credencial.');
+}
+
 export function render(root) {
   const school = state.school;
   let kind = 'alumnos', rows = [], selected = new Set();
@@ -60,7 +84,8 @@ export function render(root) {
     h('p', { class: 'muted' }, 'Etiquetas QR de 3 × 3 cm con el nombre debajo, 30 por hoja carta, para pegar en la credencial ya laminada. El QR no lleva datos personales. Si una credencial se pierde, usa "Reposición de QR" en el alumno o la persona: el QR viejo deja de servir.'),
     filters,
     h('div', { class: 'btn-row' }, btnAll, btnSel, h('button', { class: 'btn small', onclick: () => { filtered().forEach(s => selected.add(s.id)); draw(); } }, 'Marcar el filtro'), h('button', { class: 'btn small', onclick: () => { selected.clear(); draw(); } }, 'Quitar marcas'),
-      h('button', { class: 'btn small', disabled: true, title: 'Cuando tengas el formato oficial de la credencial' }, 'Credencial completa (pendiente del formato)')),
+      h('button', { class: 'btn', onclick: e => guard(e.currentTarget, () => openCredentials(filtered(), kind)) }, 'Credenciales completas del filtro'),
+      h('button', { class: 'btn small', onclick: e => guard(e.currentTarget, () => openCredentials(rows.filter(s => selected.has(s.id)), kind)) }, 'Credenciales de los seleccionados')),
     info, list));
   drawTabs(); load();
 }
