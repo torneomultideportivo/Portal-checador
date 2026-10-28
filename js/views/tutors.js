@@ -72,7 +72,7 @@ export function render(root) {
   const q = h('input', { class: 'input', type: 'search', placeholder: 'Buscar tutor, CURP o alumno…' });
   const info = h('div', { class: 'muted' });
   const list = h('div', { class: 'table-wrap' });
-  const solo = h('input', { type: 'checkbox', checked: true, onchange: () => draw() });
+  const solo = h('input', { type: 'checkbox', checked: true, onchange: () => { solo2.checked = solo.checked; draw(); } });
   const tiles = h('div', { class: 'sum-cards' });
   const fam = () => familias(rows, { soloMultiples: solo.checked });
   const drawFam = () => {
@@ -105,7 +105,7 @@ export function render(root) {
   const pSel = h('select', { class: 'input' }, h('option', { value: '' }, 'Todos los grupos'), state.school.groups.map(g => h('option', { value: g }, g)));
   const fecha = h('input', { class: 'input', type: 'date' }), hora = h('input', { class: 'input', type: 'time' });
   const asunto = h('input', { class: 'input', placeholder: 'Asunto de la reunión (opcional)' });
-  const solo2 = h('input', { type: 'checkbox', checked: true });
+  const solo2 = h('input', { type: 'checkbox', checked: true, onchange: () => { solo.checked = solo2.checked; draw(); } });
   const OPC = [['1', 'Alumno → Tutor', 'Lista con cada alumno, su grupo y su tutor.'], ['2', 'Tutor → Hijos', 'Cada tutor con sus hijos agrupados y columna de firma.'], ['3', 'Lista de padres de familia', 'Hoja de asistencia con firma, por grupo.']];
   let opc = '1';
   const opcBtns = OPC.map(([k, t, d]) => h('button', { class: 'opt-card', type: 'button', onclick: () => { opc = k; paint(); } }, h('b', null, `${k} · ${t}`), h('span', null, d)));
