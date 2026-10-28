@@ -4,14 +4,16 @@ import { state, sid } from '../state.js';
 import { sb, rpc, fetchAll } from '../api.js';
 import { fmtTime, fmtDate, todayLocal, addDays, errMsg, searchKey, cmpStudent } from '../logic.js';
 import { loadStudents } from './students.js';
+import { printScreen } from '../printing.js';
 
 const stLabel = s => (s === 'PUNTUAL' ? 'Puntual' : 'Retardo');
 const titleLines = (school, title, range) => [school.name, [school.cct && `CCT ${school.cct}`, school.school_year].filter(Boolean).join(' · '), title, range].filter(Boolean);
 const card = (cls, n, t) => h('div', { class: 'cnt ' + cls }, h('b', null, n), h('span', null, t));
-const table = (cols, rows, max = 300) => h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+const table = (cols, rows, max = 2000) => h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
   h('thead', null, h('tr', null, cols.map(c => h('th', null, c[0])))),
   h('tbody', null, rows.slice(0, max).map(r => h('tr', null, cols.map(c => h('td', { class: c[2] || '' }, c[1](r))))))),
   rows.length > max ? h('p', { class: 'muted pad' }, `Se muestran ${max} de ${rows.length}. El Excel incluye todo.`) : null);
+const prBtn = (el, title, sub) => { const b = h('button', { class: 'btn' }, 'Imprimir'); b.onclick = () => guard(b, () => printScreen(el, title, sub())); return b; };
 const dateInput = v => h('input', { class: 'input', type: 'date', value: v });
 
 export function render(root) {
@@ -47,7 +49,7 @@ export function render(root) {
         ], titleLines(school, 'Resumen de asistencia del día', fmtDate(date.value))));
         clear(out).append(
           h('div', { class: 'sum-cards' }, card('', sum.total, 'Alumnos'), card('', sum.presentes, 'Ingresaron'), card('ok', sum.puntuales, 'Puntuales'), card('warn', sum.retardos, 'Retardos'), card('muted', sum.pendientes, 'Sin registro')),
-          h('div', { class: 'btn-row' }, btn),
+          h('div', { class: 'btn-row' }, btn, prBtn(out, 'Resumen de asistencia del día', () => fmtDate(date.value))),
           h('h3', null, 'Por grupo'),
           table([['Grupo', r => `${r.grado}° ${r.grupo}`], ['Alumnos', r => r.total], ['Ingresaron', r => r.presentes], ['Puntuales', r => r.puntuales], ['Retardos', r => r.retardos], ['Sin registro', r => r.pendientes]], sum.por_grupo),
           h('h3', null, `Retardos (${ret.length})`),
@@ -89,7 +91,7 @@ export function render(root) {
           { header: 'Estado', key: 's', width: 11 }, { header: 'Min. retardo', key: 'm', width: 12 }, { header: 'Método', key: 'me', width: 10 }, { header: 'Registró', key: 'by', width: 28 }, { header: 'Sin conexión', key: 'o', width: 12 }],
         rows: rows.map(r => ({ f: fmtDate(r.fecha), h: fmtTime(r.scanned_at, tz, true), n: r.students.nombre, g: r.students.grado, p: r.students.grupo, ge: r.students.genero || '', s: stLabel(r.status), m: r.late_minutes, me: r.method === 'QR' ? 'QR' : 'Manual', by: r.recorded_by_name, o: r.offline ? 'Sí' : '' })),
       }], titleLines(school, 'Historial de asistencia', `${fmtDate(from.value)} al ${fmtDate(to.value)}`)));
-      clear(out).append(h('div', { class: 'sum-cards' }, card('', rows.length, 'Registros'), card('ok', rows.length - ret, 'Puntuales'), card('warn', ret, 'Retardos')), h('div', { class: 'btn-row' }, xl),
+      clear(out).append(h('div', { class: 'sum-cards' }, card('', rows.length, 'Registros'), card('ok', rows.length - ret, 'Puntuales'), card('warn', ret, 'Retardos')), h('div', { class: 'btn-row' }, xl, prBtn(out, 'Historial de asistencia', () => `${fmtDate(from.value)} al ${fmtDate(to.value)}`)),
         rows.length ? table([['Fecha', r => fmtDate(r.fecha)], ['Hora', r => fmtTime(r.scanned_at, tz)], ['Alumno', r => r.students.nombre], ['Grupo', r => `${r.students.grado}° ${r.students.grupo}`], ['Estado', r => badge(r.status)], ['Registró', r => r.recorded_by_name]], rows)
           : h('div', { class: 'empty' }, 'Sin registros con esos filtros.'));
     });
@@ -121,7 +123,7 @@ export function render(root) {
           rows: r.registros.map(x => ({ f: fmtDate(x.fecha), h: fmtTime(x.scanned_at, tz, true), s: stLabel(x.status), m: x.late_minutes, me: x.method === 'QR' ? 'QR' : 'Manual', by: x.by })) }],
         titleLines(school, `Asistencia de ${chosen.nombre} (${chosen.grado}° ${chosen.grupo})`, `${fmtDate(from.value)} al ${fmtDate(to.value)} · Faltas = días con clase sin registro de entrada`)));
         clear(out).append(h('div', { class: 'sum-cards' }, card('', r.dias_con_clase, 'Días con clase'), card('', r.asistencias, 'Asistencias'), card('ok', r.puntuales, 'Puntuales'), card('warn', r.retardos, 'Retardos'), card('bad', r.faltas, 'Faltas')),
-          h('p', { class: 'muted' }, '"Días con clase" son los días en que la escuela registró al menos una entrada.'), h('div', { class: 'btn-row' }, xl),
+          h('p', { class: 'muted' }, '"Días con clase" son los días en que la escuela registró al menos una entrada.'), h('div', { class: 'btn-row' }, xl, prBtn(out, `Asistencia de ${chosen.nombre} (${chosen.grado}° ${chosen.grupo})`, () => `${fmtDate(from.value)} al ${fmtDate(to.value)}`)),
           r.registros.length ? table([['Fecha', x => fmtDate(x.fecha)], ['Hora', x => fmtTime(x.scanned_at, tz)], ['Estado', x => badge(x.status)], ['Min.', x => x.late_minutes ? '+' + x.late_minutes : ''], ['Registró', x => x.by]], r.registros) : h('div', { class: 'empty' }, 'Sin registros en el periodo.'));
       } catch (e) { clear(out).append(h('div', { class: 'note bad' }, errMsg(e))); }
     };
@@ -144,7 +146,7 @@ export function render(root) {
           name: 'Puerta', columns: [{ header: 'Fecha', key: 'f', width: 12 }, { header: 'Persona', key: 'u', width: 32 }, { header: 'Alumnos registrados', key: 't', width: 18 }, { header: 'Puntuales', key: 'p', width: 11 }, { header: 'Retardos', key: 'r', width: 10 }, { header: 'Manuales', key: 'm', width: 10 }, { header: 'Sin conexión', key: 'o', width: 12 }, { header: 'Primer registro', key: 'a', width: 14 }, { header: 'Último registro', key: 'b', width: 14 }],
           rows: rows.map(r => ({ f: fmtDate(r.fecha), u: r.user_name, t: r.total, p: r.puntuales, r: r.retardos, m: r.manuales, o: r.sin_conexion, a: fmtTime(r.primero, tz, true), b: fmtTime(r.ultimo, tz, true) })) }],
         titleLines(school, '¿Quién estuvo en la puerta?', `${fmtDate(from.value)} al ${fmtDate(to.value)}`)));
-        clear(out).append(h('div', { class: 'btn-row' }, xl), rows.length ? table([['Fecha', r => fmtDate(r.fecha)], ['Persona', r => r.user_name], ['Registró', r => r.total], ['Puntuales', r => r.puntuales], ['Retardos', r => r.retardos], ['Manuales', r => r.manuales], ['Sin conexión', r => r.sin_conexion], ['De', r => fmtTime(r.primero, tz)], ['A', r => fmtTime(r.ultimo, tz)]], rows) : h('div', { class: 'empty' }, 'Sin registros en el periodo.'));
+        clear(out).append(h('div', { class: 'btn-row' }, xl, prBtn(out, '¿Quién estuvo en la puerta?', () => `${fmtDate(from.value)} al ${fmtDate(to.value)}`)), rows.length ? table([['Fecha', r => fmtDate(r.fecha)], ['Persona', r => r.user_name], ['Registró', r => r.total], ['Puntuales', r => r.puntuales], ['Retardos', r => r.retardos], ['Manuales', r => r.manuales], ['Sin conexión', r => r.sin_conexion], ['De', r => fmtTime(r.primero, tz)], ['A', r => fmtTime(r.ultimo, tz)]], rows) : h('div', { class: 'empty' }, 'Sin registros en el periodo.'));
       } catch (e) { clear(out).append(h('div', { class: 'note bad' }, errMsg(e))); }
     };
     [from, to].forEach(i => i.addEventListener('change', load));

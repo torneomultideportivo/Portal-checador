@@ -3,7 +3,7 @@ import { h, clear, toast, guard, spinner, downloadXlsx } from '../ui.js';
 import { state } from '../state.js';
 import { errMsg, curpBirth, norm, fmtDate, todayLocal } from '../logic.js';
 import { loadStudentsFull } from './students.js';
-import { openPrintPages } from '../printing.js';
+import { openPrintPages, schoolHeadHtml } from '../printing.js';
 
 const sexOf = s => { const x = norm(s.curp)[10]; if (x === 'H' || x === 'M') return x; const g = norm(s.genero); return g.startsWith('H') ? 'H' : g.startsWith('M') ? 'M' : ''; };
 function ageOf(curp, hoy) {
@@ -80,9 +80,10 @@ export function render(root) {
         rows: ages(r).map(a => { const o = { e: `${a} años` }; let t = 0; for (const g of school.grades) { o['g' + g] = r.edadGrado.get(`${a}|${g}`) || 0; t += o['g' + g]; } o.t = t; return o; }) },
     ], [school.name, 'Estadística de alumnos', `Edades al ${fmtDate(hoy)}`]);
   }
-  function print(r) {
+  async function print(r) {
+    const head = await schoolHeadHtml();
     const page = h('div', { class: 'print-page stat-page' },
-      h('h2', null, school.name), h('p', null, `Estadística de alumnos · edades al ${fmtDate(hoy)}`),
+      h('div', { html: head }), h('p', null, `Estadística de alumnos · edades al ${fmtDate(hoy)}`),
       h('p', null, `Total ${r.total} · Niñas ${r.M} (${pct(r.M, r.total)}) · Niños ${r.H} (${pct(r.H, r.total)}) · Lengua indígena ${r.lengua}`),
       h('h3', null, 'Por edad'), tbl(['Edad', 'Niñas', 'Niños', 'Total'], ages(r).map(a => { const e = r.edades.get(a); return h('tr', null, h('td', null, `${a} años`), h('td', null, e.M), h('td', null, e.H), h('td', null, e.M + e.H)); })),
       h('h3', null, 'Por grado y grupo'), tbl(['Grupo', 'Niñas', 'Niños', 'Total'], gradeRows(r)));
@@ -101,7 +102,7 @@ export function render(root) {
       h('div', { class: 'card' }, h('h3', null, 'Edad por grado'), tbl(['Edad', ...school.grades.map(g => `${g}°`), 'Total'], ageGradeRows(r)),
         h('p', { class: 'muted small' }, 'Sirve para ver quién va adelantado o con rezago respecto a la edad típica de su grado.')),
       h('div', { class: 'btn-row' }, (() => { const b = h('button', { class: 'btn primary' }, 'Descargar Excel'); b.onclick = () => guard(b, () => excel(r)); return b; })(),
-        h('button', { class: 'btn', onclick: () => print(r) }, 'Imprimir')));
+        h('button', { class: 'btn', onclick: ev => guard(ev.currentTarget, () => print(r)) }, 'Imprimir')));
   }
 
   root.append(h('section', { class: 'view' }, h('div', { class: 'view-head' }, h('h2', null, 'Estadística de alumnos')),

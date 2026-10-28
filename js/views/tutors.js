@@ -3,7 +3,7 @@ import { h, clear, spinner, esc, guard, downloadXlsx, slug } from '../ui.js';
 import { state, sid } from '../state.js';
 import { rpc } from '../api.js';
 import { searchKey, errMsg, PARENTESCOS, parentLists, familias } from '../logic.js';
-import { openPrintPages } from '../printing.js';
+import { openPrintPages, schoolHeadHtml } from '../printing.js';
 
 const FILAS_POR_HOJA = 24;
 const longDate = iso => new Intl.DateTimeFormat('es-MX', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(iso + 'T12:00:00Z'));
@@ -11,17 +11,6 @@ const longDate = iso => new Intl.DateTimeFormat('es-MX', { dateStyle: 'long', ti
 const up = t => esc(String(t ?? '').toLocaleUpperCase('es-MX'));
 const cmpEs = (x, y) => String(x).localeCompare(String(y), 'es', { numeric: true });
 
-// Encabezado de la escuela (logos, instituto, escuela, claves y lugar): el mismo en las tres hojas
-async function headHtml() {
-  const school = state.school;
-  const assets = await rpc('school_assets', { p_school: sid() });
-  const logo = (src, side) => src ? `<img class="lp-logo ${side}" src="${src}" alt="">` : `<div class="lp-logo ${side}"></div>`;
-  const inst = String(assets.header_line || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<div>${up(x)}</div>`).join('');
-  const claves = [school.cct, assets.internal_key].filter(Boolean).map(up).join('&nbsp;&nbsp;&nbsp;&nbsp;');
-  return `<div class="lp-head">${logo(assets.logo_ieepo, 'l')}
-    <div class="lp-inst">${inst}<div>${up(school.name)}</div>${claves ? `<div>${claves}</div>` : ''}${assets.place_line ? `<div>${up(assets.place_line)}</div>` : ''}</div>
-    ${logo(assets.logo_school, 'r')}</div>`;
-}
 const titulo = (t, der = '') => `<div class="lp-titulo"><span>${t}</span><span>${der}</span></div>`;
 const hojaN = (i, total) => total > 1 ? `<div class="lp-hoja">Hoja ${i} de ${total}</div>` : '';
 
@@ -37,7 +26,7 @@ function paginar(items, peso, max) {
 async function printAlumnoTutor(tutors, { grado, grupo }) {
   const groups = parentLists(tutors, { grado, grupo });
   if (!groups.length) throw new Error('No hay alumnos con tutor registrado en esa selección.');
-  const head = await headHtml();
+  const head = await schoolHeadHtml();
   const alumnos = groups.flatMap(g => g.alumnos.map(a => ({ ...a, g: `${g.grado}°${g.grupo}` }))).sort((a, b) => cmpEs(a.nombre, b.nombre));   // alfabético por apellidos y nombre
   const pages = paginar(alumnos, a => Math.max(1, a.tutores.length), 30);
   const der = grado || grupo ? `${esc(grado)}${grado && grupo ? '°' : ''}${esc(grupo)}` : 'TODOS LOS GRUPOS';
@@ -50,7 +39,7 @@ async function printAlumnoTutor(tutors, { grado, grupo }) {
 async function printTutorHijos(tutors, { solo }) {
   const { lista } = familias(tutors, { soloMultiples: solo });
   if (!lista.length) throw new Error(solo ? 'No hay tutores con 2 o más hijos.' : 'No hay tutores registrados.');
-  const head = await headHtml();
+  const head = await schoolHeadHtml();
   const pages = paginar(lista, t => Math.max(1, t.hijos.length), 24);
   openPrintPages(pages.map((chunk, i) => h('div', { class: 'print-page lp-page', html: `${head}${titulo(solo ? 'TUTORES CON 2 O MÁS HIJOS' : 'TUTORES Y SUS HIJOS', `${lista.length} tutor(es)`)}
     <table class="lp-tabla lp-th"><thead><tr><th>TUTOR</th><th>HIJOS (ALUMNO · GRUPO)</th><th>FIRMA</th></tr></thead><tbody>${chunk.map(t => `<tr><td><b>${up(t.nombre)}</b><div class="small">${t.hijos.length} hijo${t.hijos.length > 1 ? 's' : ''}</div></td><td class="t">${t.hijos.map(a => `<div>${up(a.nombre)} · ${esc(a.grado)}°${esc(a.grupo)}</div>`).join('')}</td><td></td></tr>`).join('')}</tbody></table>${hojaN(i + 1, pages.length)}` })),
@@ -62,7 +51,7 @@ async function printParentLists(tutors, opts) {
   const school = state.school;
   const groups = parentLists(tutors, opts);
   if (!groups.length) throw new Error('No hay alumnos con tutor registrado en esa selección.');
-  const head = await headHtml();
+  const head = await schoolHeadHtml();
   const pages = [];
   for (const g of groups) {
     const total = Math.ceil(g.alumnos.length / FILAS_POR_HOJA);

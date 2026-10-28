@@ -271,3 +271,10 @@ label.check { flex-direction: row !important; align-items: center; gap: .4rem; f
 .cred-aut { margin-top: .35cm; }
 .cred-qr { position: absolute; right: .3cm; bottom: .25cm; width: 1.7cm; height: 1.7cm; } .cred-qr svg { width: 100%; height: 100%; display: block; }
 @media print { .print-page.cred-page { width: 21.59cm; min-height: 0; height: 27.94cm; } }
+.print-page.rp-page { display: block; width: 21.59cm; min-height: 0; padding: 1.2cm 1.6cm; color: #000; font-family: Arial, Helvetica, sans-serif; }
+.rp-page .rp-body { font-size: 9pt; } .rp-page .rp-body h3 { font-size: 10pt; margin: .5cm 0 .15cm; }
+.rp-page .rp-body table { width: 100%; border-collapse: collapse; } .rp-page .rp-body th, .rp-page .rp-body td { border: .25mm solid #000; padding: .05cm .15cm; font-size: 8.5pt; text-align: left; } .rp-page .rp-body th { background: #eee; }
+.rp-page .rp-body .sum-cards { display: flex; gap: .3cm; margin: .2cm 0; } .rp-page .rp-body .cnt { border: .25mm solid #000; padding: .1cm .3cm; text-align: center; background: none; color: #000; box-shadow: none; } .rp-page .rp-body .cnt b { display: block; font-size: 12pt; } .rp-page .rp-body .cnt span { font-size: 7.5pt; }
+.rp-page .rp-body .badge { border: 0; background: none; color: #000; padding: 0; }
+.rp-page .rp-body .table-wrap { overflow: visible; }
+@media print { .print-page.rp-page { height: auto; } .rp-page .rp-body tr { break-inside: avoid; } }
