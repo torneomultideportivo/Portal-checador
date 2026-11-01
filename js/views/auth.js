@@ -1,5 +1,5 @@
 // Pantallas de acceso: entrar, registrarse con código, recuperar contraseña, cuenta pendiente.
-import { h, clear, toast, guard, icon } from '../ui.js';
+import { h, clear, toast, guard, icon, qrSvg } from '../ui.js';
 import { authApi, rpc } from '../api.js';
 import { errMsg } from '../logic.js';
 import { modal } from '../ui.js';
@@ -13,6 +13,23 @@ function shell(...kids) {
     h('div', { class: 'brand' }, h('div', { class: 'logo' }, icon('scan', 28)), h('h1', null, APP_NAME)), ...kids));
 }
 
+// Dirección de la aplicación (sin # ni parámetros): es lo que codifica el QR de instalación
+export const appUrl = () => location.origin + location.pathname;
+
+// QR para abrir e instalar la aplicación en otro celular
+export function installQrBlock() {
+  const url = appUrl();
+  return h('div', { class: 'install-qr' },
+    h('div', { class: 'iq-code', html: qrSvg(url, { margin: 2 }) }),
+    h('div', { class: 'iq-txt' },
+      h('b', null, 'Instala la aplicación en tu celular'),
+      h('p', { class: 'small muted' }, 'Abre la cámara y apunta a este QR. Se abrirá la página del Checador.'),
+      h('p', { class: 'small' }, h('b', null, 'Android (Chrome):'), ' menú ⋮ → "Instalar aplicación" o "Agregar a pantalla de inicio".'),
+      h('p', { class: 'small' }, h('b', null, 'iPhone (Safari):'), ' botón Compartir → "Agregar a pantalla de inicio".'),
+      h('p', { class: 'small mono' }, url)));
+}
+export const openInstallQr = () => modal({ title: 'QR de instalación', body: installQrBlock() });
+
 export const openNotice = () => modal({ title: 'Aviso de privacidad', wide: true, body: h('div', { class: 'privacy-scroll' }, privacyBodyEl(null)) });
 
 export function renderAuth(root, { onLogged, initial = 'login' }) {
@@ -23,6 +40,7 @@ export function renderAuth(root, { onLogged, initial = 'login' }) {
       h('button', { class: tab === 'login' ? 'on' : '', onclick: () => { tab = 'login'; draw(); } }, 'Entrar'),
       h('button', { class: tab === 'register' ? 'on' : '', onclick: () => { tab = 'register'; draw(); } }, 'Registrarme'));
     root.append(shell(tabs, tab === 'login' ? loginForm() : tab === 'register' ? registerForm() : forgotForm(),
+      h('details', { class: 'install-box' }, h('summary', null, '📱 Instalar la aplicación (QR)'), installQrBlock()),
       h('p', { class: 'center small' }, h('a', { href: '#', onclick: e => { e.preventDefault(); openNotice(); } }, 'Aviso de privacidad'))));
   };
 

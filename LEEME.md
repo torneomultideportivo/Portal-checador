@@ -77,6 +77,10 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 - Hasta 4 administrativos por escuela, todos con los mismos permisos. Una clave ADM nueva suma a otro; ya no reemplaza al actual.
 - En "Usuarios y roles" el administrativo genera claves, agrega prefectos como administrativos y da de baja a otros. Nunca se puede dar de baja al último.
 
+## QR de instalación (v2.10.0)
+
+En la pantalla de entrada hay un recuadro desplegable **"Instalar la aplicación (QR)"**: quien lo escanea abre el portal y sigue los pasos para instalarlo en su celular. También está en **Mi cuenta → Mostrar QR de instalación**. El QR se genera con la dirección real del sitio, no hay que actualizarlo.
+
 ## Tutores con sus hijos y baja definitiva de alumnos (v2.9.0)
 
 - (v2.9.2) Todos los reportes ya se imprimen con el encabezado de la escuela: Reportes (resumen del día, historial, por alumno, puerta), Retardos y faltas y Estadística tienen botón **Imprimir**.

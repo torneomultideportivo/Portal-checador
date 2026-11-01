@@ -5,10 +5,10 @@ import { sb, rpc, configured, authApi, SCHOOL_COLS } from './api.js';
 import { kvGet, kvSet, kvDel, clearStores } from './db.js';
 import { loadLocal, refreshRoster, flushQueue, startBackground } from './sync.js';
 import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.js';
-import { renderAuth, renderRecovery, renderBlocked, renderSetup } from './views/auth.js';
+import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.9.3';
+const VERSION = '2.10.0';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -244,6 +244,7 @@ function openAccount() {
     h('div', { class: 'btn-col' },
       canScan() ? h('button', { class: 'btn', onclick: ev => guard(ev.currentTarget, async () => { await refreshRoster(); await flushQueue(); toast('Lista actualizada', 'ok'); m.close(); }) }, 'Actualizar lista de alumnos y enviar pendientes') : null,
       installEvt ? h('button', { class: 'btn', onclick: async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; m.close(); } }, 'Instalar la aplicación en este dispositivo') : null,
+      h('button', { class: 'btn', onclick: () => { m.close(); openInstallQr(); } }, 'Mostrar QR de instalación'),
       h('button', { class: 'btn danger', onclick: () => { m.close(); logout(); } }, icon('logout', 18), ' Cerrar sesión')),
     h('p', { class: 'muted small' }, `${APP_NAME} · versión ${VERSION}`)) });
 }
