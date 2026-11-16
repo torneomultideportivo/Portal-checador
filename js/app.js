@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.12.2';
+const VERSION = '2.13.0';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -40,6 +40,7 @@ const VIEWS = {
   conexion:      V('Concentrado',          'sync',   'admin', 'conexion'),
   audit:         V('Bitácora',            'list',   'admin', 'audit'),
   schools:       V('Licencias',           'school', 'super', 'licencias'),
+  guia:          V('Guía del portal',     'list',   'any2',  'guia'),
   ayuda:         V('Ayuda y licencia',    'gear',   'schooladmin', 'ayuda'),
   import:        V('Importar',            'upload', 'admin', 'import', { hidden: true }),
 };
@@ -49,6 +50,7 @@ const allowed = k => {
   if (v.who === 'super') return isSuper();
   if (v.who === 'schooladmin') return role() === 'school_admin';
   if (readOnly() && (k === 'scan' || k === 'manual' || k === 'retiro' || k === 'import')) return false;
+  if (v.who === 'any2') return true;
   if (v.who === 'superscan') return isSuper() && !!state.school && !readOnly();
   if (v.who === 'retiro') return canScan() || (isSuper() && !!state.school);
   if (v.who === 'scan') return canScan();
@@ -228,7 +230,7 @@ function buildShell() {
     h('header', { class: 'top' }, title, status, h('button', { class: 'icon-btn light', onclick: openAccount, 'aria-label': 'Mi cuenta' }, icon('shield', 22))),
     banner,
     h('div', { class: 'layout' },
-      h('nav', { class: 'side' }, groupedKeys(keys).map(([name, list]) => navGroup(name, list.map(k => link(k)))), navGroup('Cuenta', [...(keys.includes('ayuda') ? [link('ayuda')] : []), h('button', { class: 'nav-link', onclick: openAccount }, icon('logout', 22), h('span', null, 'Mi cuenta'))])),
+      h('nav', { class: 'side' }, groupedKeys(keys).map(([name, list]) => navGroup(name, list.map(k => link(k)))), navGroup('Cuenta', [link('guia'), ...(keys.includes('ayuda') ? [link('ayuda')] : []), h('button', { class: 'nav-link', onclick: openAccount }, icon('logout', 22), h('span', null, 'Mi cuenta'))])),
       shell.main),
     h('nav', { class: 'bottom' }, prim.map(k => link(k)), more.length ? moreBtn : h('button', { class: 'nav-link', onclick: openAccount }, icon('shield', 22), h('span', null, 'Cuenta'))));
 
@@ -239,6 +241,7 @@ function buildShell() {
     m.addEventListener('click', e => { if (e.target === m) close(); });
     m.append(h('div', { class: 'sheet' }, h('div', { class: 'sheet-grid' }, groupedKeys(more).flatMap(([name, list]) => [h('div', { class: 'sheet-h' }, name), ...list.map(k => h('a', { href: '#/' + k, class: 'sheet-item', onclick: close }, icon(VIEWS[k].icon, 26), h('span', null, VIEWS[k].title)))]),
       h('div', { class: 'sheet-h' }, 'Cuenta'),
+      h('a', { href: '#/guia', class: 'sheet-item', onclick: close }, icon(VIEWS.guia.icon, 26), h('span', null, VIEWS.guia.title)),
       ...(more.includes('ayuda') ? [h('a', { href: '#/ayuda', class: 'sheet-item', onclick: close }, icon(VIEWS.ayuda.icon, 26), h('span', null, VIEWS.ayuda.title))] : []),
       h('button', { class: 'sheet-item', onclick: () => { close(); openAccount(); } }, icon('shield', 26), h('span', null, 'Mi cuenta')))));
     document.body.append(m);
