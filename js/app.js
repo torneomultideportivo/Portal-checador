@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.11.0';
+const VERSION = '2.11.1';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -53,7 +53,7 @@ const allowed = k => {
   return isAdmin() && (!isSuper() || !!state.school);
 };
 const navKeys = () => Object.keys(VIEWS).filter(k => allowed(k) && !VIEWS[k].hidden);
-const primaryKeys = () => (isSuper() ? ['schools', 'students', 'reports'] : role() === 'school_admin' ? ['scan', 'manual', 'today', 'students'] : ['scan', 'manual', 'retiro', 'today']).filter(allowed);
+const primaryKeys = () => (isSuper() ? ['schools', 'students', 'reports'] : role() === 'school_admin' ? ['scan', 'manual', 'retiro', 'today'] : ['scan', 'manual', 'retiro', 'today']).filter(allowed);
 const defaultRoute = () => (isSuper() ? (state.school ? 'students' : 'schools') : readOnly() ? 'today' : 'scan');
 
 // ------------------------------------------------------------------ arranque
