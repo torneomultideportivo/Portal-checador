@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.10.0';
+const VERSION = '2.11.0';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -17,9 +17,11 @@ const V = (title, icon, who, file, extra = {}) => ({ title, icon, who, load: () 
 const VIEWS = {
   scan:          V('Escanear',            'scan',   'scan',  'scan'),
   manual:        V('Manual',              'hand',   'scan',  'manual'),
+  retiro:        V('Retiro anticipado',   'logout', 'scan',  'retiro'),
   today:         V('Hoy',                 'list',   'scan',  'today'),
   probar:        V('Probar QR',           'scan',   'admin', 'probar'),
   capacitacion:  V('Capacitación',        'list',   'any',   'capacitacion'),
+  retiros:       V('Retiros del día',     'list',   'admin', 'retiros'),
   retardos:      V('Retardos y faltas',   'chart',  'admin', 'retardos'),
   estadistica:   V('Estadística',         'chart',  'admin', 'estadistica'),
   students:      V('Alumnos',             'users',  'admin', 'students'),
@@ -34,6 +36,7 @@ const VIEWS = {
   privacy:       V('Aviso de privacidad', 'lock',   'admin', 'privacy'),
   security:      V('Seguridad',           'lock',   'admin', 'security'),
   settings:      V('Configuración',       'gear',   'admin', 'settings'),
+  conexion:      V('Conexión Concentrado','sync',   'admin', 'conexion'),
   audit:         V('Bitácora',            'list',   'admin', 'audit'),
   schools:       V('Licencias',           'school', 'super', 'licencias'),
   ayuda:         V('Ayuda y licencia',    'gear',   'schooladmin', 'ayuda'),
@@ -44,13 +47,13 @@ const allowed = k => {
   const v = VIEWS[k]; if (!v) return false;
   if (v.who === 'super') return isSuper();
   if (v.who === 'schooladmin') return role() === 'school_admin';
-  if (readOnly() && (k === 'scan' || k === 'manual' || k === 'import')) return false;
+  if (readOnly() && (k === 'scan' || k === 'manual' || k === 'retiro' || k === 'import')) return false;
   if (v.who === 'scan') return canScan();
   if (v.who === 'any') return canScan() || isAdmin();
   return isAdmin() && (!isSuper() || !!state.school);
 };
 const navKeys = () => Object.keys(VIEWS).filter(k => allowed(k) && !VIEWS[k].hidden);
-const primaryKeys = () => (isSuper() ? ['schools', 'students', 'reports'] : role() === 'school_admin' ? ['scan', 'manual', 'today', 'students'] : ['scan', 'manual', 'today']).filter(allowed);
+const primaryKeys = () => (isSuper() ? ['schools', 'students', 'reports'] : role() === 'school_admin' ? ['scan', 'manual', 'today', 'students'] : ['scan', 'manual', 'retiro', 'today']).filter(allowed);
 const defaultRoute = () => (isSuper() ? (state.school ? 'students' : 'schools') : readOnly() ? 'today' : 'scan');
 
 // ------------------------------------------------------------------ arranque

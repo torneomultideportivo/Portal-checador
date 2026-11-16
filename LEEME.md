@@ -77,6 +77,16 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 - Hasta 4 administrativos por escuela, todos con los mismos permisos. Una clave ADM nueva suma a otro; ya no reemplaza al actual.
 - En "Usuarios y roles" el administrativo genera claves, agrega prefectos como administrativos y da de baja a otros. Nunca se puede dar de baja al último.
 
+## Retiro anticipado y conexión con el Concentrado (v2.11.0)
+
+**Base de datos:** correr `supabase/schema_v8.sql` en el SQL Editor (una sola vez, es repetible sin riesgo).
+
+- **Retiro anticipado** (prefecto o administrativo): escanea la credencial, elige motivo (Salud, Cita o asunto familiar, Permiso de dirección, Otro), "quién recogió" opcional. Solo si el alumno ya tiene entrada hoy; un retiro por día; hora del servidor; requiere internet.
+- **Retiros del día** (administrativo): lista con alumno, grupo, hora, motivo y quién registró; Corregir, Cancelar (con motivo) e Imprimir. Todo queda en la bitácora.
+- **Conexión con el Concentrado** (administrativo): llave por escuela (se muestra una sola vez, se guarda cifrada), interruptor apagado por defecto, regenerar, revocar, último uso.
+- **Aviso de privacidad v2:** agrega retiro (hora, categoría, quién recogió) y la conexión opcional con el Concentrado (CURP y horas). Todos deben aceptarlo de nuevo.
+- Pruebas: `tests/test_v8.py` (80 comprobaciones).
+
 ## QR de instalación (v2.10.0)
 
 En la pantalla de entrada hay un recuadro desplegable **"Instalar la aplicación (QR)"**: quien lo escanea abre el portal y sigue los pasos para instalarlo en su celular. También está en **Mi cuenta → Mostrar QR de instalación**. El QR se genera con la dirección real del sitio, no hay que actualizarlo.
