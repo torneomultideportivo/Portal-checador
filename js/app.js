@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.12.1';
+const VERSION = '2.12.2';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -193,6 +193,22 @@ async function checkClock() {
   } catch { /* */ }
 }
 
+// Secciones desplegables del menú lateral (se recuerda cuáles están abiertas en este equipo)
+const OPEN_KEY = 'menuAbierto';
+const loadOpen = () => { try { return new Set(JSON.parse(localStorage.getItem(OPEN_KEY) || '["Registro"]')); } catch { return new Set(['Registro']); } };
+const saveOpen = set => { try { localStorage.setItem(OPEN_KEY, JSON.stringify([...set])); } catch { /* sin almacenamiento */ } };
+const openGroups = loadOpen();
+function navGroup(name, items) {
+  const box = h('div', { class: 'nav-grp' + (openGroups.has(name) ? ' open' : ''), data: { g: name } },
+    h('button', { class: 'nav-h', 'aria-expanded': String(openGroups.has(name)), onclick: () => {
+      const on = box.classList.toggle('open');
+      on ? openGroups.add(name) : openGroups.delete(name);
+      saveOpen(openGroups); box.firstChild.setAttribute('aria-expanded', String(on));
+    } }, h('span', null, name), h('span', { class: 'chev', 'aria-hidden': 'true' })),
+    h('div', { class: 'nav-items' }, items));
+  return box;
+}
+
 // ------------------------------------------------------------------ pantalla
 function buildShell() {
   clear(root);
@@ -212,7 +228,7 @@ function buildShell() {
     h('header', { class: 'top' }, title, status, h('button', { class: 'icon-btn light', onclick: openAccount, 'aria-label': 'Mi cuenta' }, icon('shield', 22))),
     banner,
     h('div', { class: 'layout' },
-      h('nav', { class: 'side' }, groupedKeys(keys).flatMap(([name, list]) => [h('div', { class: 'nav-h' }, name), ...list.map(k => link(k))]), h('div', { class: 'nav-h' }, 'Cuenta'), ...(keys.includes('ayuda') ? [link('ayuda')] : []), h('button', { class: 'nav-link', onclick: openAccount }, icon('logout', 22), h('span', null, 'Mi cuenta'))),
+      h('nav', { class: 'side' }, groupedKeys(keys).map(([name, list]) => navGroup(name, list.map(k => link(k)))), navGroup('Cuenta', [...(keys.includes('ayuda') ? [link('ayuda')] : []), h('button', { class: 'nav-link', onclick: openAccount }, icon('logout', 22), h('span', null, 'Mi cuenta'))])),
       shell.main),
     h('nav', { class: 'bottom' }, prim.map(k => link(k)), more.length ? moreBtn : h('button', { class: 'nav-link', onclick: openAccount }, icon('shield', 22), h('span', null, 'Cuenta'))));
 
@@ -273,6 +289,8 @@ async function route() {
   let k = (location.hash.replace(/^#\/?/, '') || '').split('?')[0];
   if (!allowed(k)) { k = defaultRoute(); if (location.hash !== '#/' + k) { history.replaceState(null, '', '#/' + k); } }
   document.querySelectorAll('.nav-link[data-k]').forEach(a => a.classList.toggle('active', a.dataset.k === k));
+  const grp = document.querySelector(`nav.side .nav-link[data-k="${k}"]`)?.closest('.nav-grp');   // la sección de la pantalla actual siempre se ve abierta
+  if (grp && !grp.classList.contains('open')) { grp.classList.add('open'); grp.firstChild.setAttribute('aria-expanded', 'true'); openGroups.add(grp.dataset.g); }
   if (cleanup) { try { cleanup(); } catch { /* */ } cleanup = null; }
   const main = shell.main;
   clear(main).append(spinner());

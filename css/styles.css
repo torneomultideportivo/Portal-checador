@@ -288,5 +288,13 @@ label.check { flex-direction: row !important; align-items: center; gap: .4rem; f
 
 /* ---------- menú por secciones ---------- */
 .nav-h { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: .9rem .8rem .25rem; }
-nav.side .nav-h:first-child { padding-top: .2rem; }
 .sheet-h { grid-column: 1 / -1; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: .6rem .2rem .1rem; }
+
+/* secciones desplegables */
+nav.side .nav-grp { display: flex; flex-direction: column; }
+nav.side .nav-h { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: 0; cursor: pointer; padding: .7rem .8rem; border-radius: 10px; text-align: left; font: inherit; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+nav.side .nav-h:hover { background: var(--primary-l); color: var(--ink); }
+nav.side .nav-h .chev { width: .5rem; height: .5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin-right: .2rem; }
+nav.side .nav-grp.open > .nav-h .chev { transform: rotate(45deg); }
+nav.side .nav-items { display: none; flex-direction: column; gap: .1rem; padding: 0 0 .3rem .3rem; }
+nav.side .nav-grp.open > .nav-items { display: flex; }
