@@ -2,7 +2,7 @@
 // de clases, elige el motivo y confirma. La salida normal de fin de día NO se registra aquí.
 // La autorización es un documento en papel que el prefecto revisa; el sistema no lo emite ni lo valida.
 import { h, clear, icon, toast, beep } from '../ui.js';
-import { state } from '../state.js';
+import { state, isSuper, sid } from '../state.js';
 import { rpc } from '../api.js';
 import { QrScanner } from '../scanner.js';
 import { parseQr, fmtTime, searchKey, errMsg } from '../logic.js';
@@ -17,6 +17,7 @@ export function render(root) {
   const panel = h('div', { class: 'result idle' });
   const recentBox = h('div', { class: 'recent' });
   const recent = [];
+  const sch = () => (isSuper() ? { p_school: sid() } : {}); // el super administrador indica la escuela en la que entró
   let busy = false, lockUntil = 0, lastCode = '', lastAt = 0;
 
   const idle = () => {
@@ -36,7 +37,7 @@ export function render(root) {
     busy = true;
     show('idle', 'Buscando…', '', null);
     try {
-      const r = await rpc('early_exit_lookup', arg);
+      const r = await rpc('early_exit_lookup', { ...arg, ...sch() });
       const st = r.student;
       const where = st ? `${st.grado}° ${st.grupo}` : '';
       if (r.result === 'LISTO') { beep('ok'); return form(r); }
@@ -58,7 +59,7 @@ export function render(root) {
     go.onclick = async () => {
       go.disabled = true;
       try {
-        const res = await rpc('register_early_exit', { p_student: st.id, p_categoria: motivo, p_recogio: recogio.value.trim() || null });
+        const res = await rpc('register_early_exit', { p_student: st.id, p_categoria: motivo, p_recogio: recogio.value.trim() || null, ...sch() });
         beep('ok');
         show('ok', 'RETIRO REGISTRADO', st.nombre, h('div', null, h('div', { class: 'r-meta' }, `${st.grado}° ${st.grupo} · ${fmtTime(res.exit_at, tz)} · ${motivoTxt(motivo)}`), okBtn()));
         pushRecent(`${st.nombre} · retiro (${motivoTxt(motivo)})`, 'ok');

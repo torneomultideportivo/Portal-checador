@@ -85,7 +85,8 @@ Base de datos 174 pruebas (90 + 84), lógica 20 pruebas y recorrido de todas las
 - **Retiros del día** (administrativo): lista con alumno, grupo, hora, motivo y quién registró; Corregir, Cancelar (con motivo) e Imprimir. Todo queda en la bitácora.
 - **Conexión con el Concentrado** (administrativo): llave por escuela (se muestra una sola vez, se guarda cifrada), interruptor apagado por defecto, regenerar, revocar, último uso.
 - **Aviso de privacidad v2:** agrega retiro (hora, categoría, quién recogió) y la conexión opcional con el Concentrado (CURP y horas). Todos deben aceptarlo de nuevo.
-- Pruebas: `tests/test_v8.py` (80 comprobaciones).
+- **v2.11.2 / schema_v9.sql:** el super administrador, con acceso de soporte a la escuela elegida, también puede registrar retiros.
+- Pruebas: `tests/test_v8.py` (86 comprobaciones).
 
 ## QR de instalación (v2.10.0)
 

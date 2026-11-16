@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.11.1';
+const VERSION = '2.11.2';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -17,7 +17,7 @@ const V = (title, icon, who, file, extra = {}) => ({ title, icon, who, load: () 
 const VIEWS = {
   scan:          V('Escanear',            'scan',   'scan',  'scan'),
   manual:        V('Manual',              'hand',   'scan',  'manual'),
-  retiro:        V('Retiro anticipado',   'logout', 'scan',  'retiro'),
+  retiro:        V('Retiro anticipado',   'logout', 'retiro', 'retiro'),
   today:         V('Hoy',                 'list',   'scan',  'today'),
   probar:        V('Probar QR',           'scan',   'admin', 'probar'),
   capacitacion:  V('Capacitación',        'list',   'any',   'capacitacion'),
@@ -48,6 +48,7 @@ const allowed = k => {
   if (v.who === 'super') return isSuper();
   if (v.who === 'schooladmin') return role() === 'school_admin';
   if (readOnly() && (k === 'scan' || k === 'manual' || k === 'retiro' || k === 'import')) return false;
+  if (v.who === 'retiro') return canScan() || (isSuper() && !!state.school);
   if (v.who === 'scan') return canScan();
   if (v.who === 'any') return canScan() || isAdmin();
   return isAdmin() && (!isSuper() || !!state.school);
