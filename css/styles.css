@@ -285,3 +285,8 @@ label.check { flex-direction: row !important; align-items: center; gap: .4rem; f
 
 .retiro-form { display: flex; flex-direction: column; gap: .5rem; margin-top: .6rem; } .rowcancel td { opacity: .55; text-decoration: line-through; } .rowcancel td .small { text-decoration: none; }
 .cnt.muted b { color: inherit; }
+
+/* ---------- menú por secciones ---------- */
+.nav-h { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: .9rem .8rem .25rem; }
+nav.side .nav-h:first-child { padding-top: .2rem; }
+.sheet-h { grid-column: 1 / -1; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: .6rem .2rem .1rem; }

@@ -8,7 +8,7 @@ import { isNetworkError, errMsg, licenseView, waLink, fmtLarga } from './logic.j
 import { renderAuth, renderRecovery, renderBlocked, renderSetup, openInstallQr } from './views/auth.js';
 import { APP_NAME } from './config.js';
 
-const VERSION = '2.12.0';
+const VERSION = '2.12.1';
 const root = document.getElementById('app');
 let cleanup = null, installEvt = null, shell = null, clockTimer = null;
 
@@ -37,7 +37,7 @@ const VIEWS = {
   privacy:       V('Aviso de privacidad', 'lock',   'admin', 'privacy'),
   security:      V('Seguridad',           'lock',   'admin', 'security'),
   settings:      V('Configuración',       'gear',   'admin', 'settings'),
-  conexion:      V('Conexión Concentrado','sync',   'admin', 'conexion'),
+  conexion:      V('Concentrado',          'sync',   'admin', 'conexion'),
   audit:         V('Bitácora',            'list',   'admin', 'audit'),
   schools:       V('Licencias',           'school', 'super', 'licencias'),
   ayuda:         V('Ayuda y licencia',    'gear',   'schooladmin', 'ayuda'),
@@ -55,6 +55,16 @@ const allowed = k => {
   if (v.who === 'any') return canScan() || isAdmin();
   return isAdmin() && (!isSuper() || !!state.school);
 };
+// Orden y secciones del menú
+const GROUPS = [
+  ['Escuelas',       ['schools']],
+  ['Registro',       ['scan', 'manual', 'retiro', 'entrada', 'today', 'probar']],
+  ['Seguimiento',    ['retiros', 'retardos', 'alarms', 'reports', 'estadistica']],
+  ['Personas',       ['students', 'tutors', 'personal', 'cards', 'capacitacion']],
+  ['Comunicación',   ['citatorios', 'felicitaciones']],
+  ['Administración', ['staff', 'settings', 'conexion', 'privacy', 'security', 'audit']],
+];
+const groupedKeys = keys => GROUPS.map(([name, list]) => [name, list.filter(k => keys.includes(k))]).filter(g => g[1].length);
 const navKeys = () => Object.keys(VIEWS).filter(k => allowed(k) && !VIEWS[k].hidden);
 const primaryKeys = () => (isSuper() ? ['schools', 'students', 'reports'] : role() === 'school_admin' ? ['scan', 'manual', 'retiro', 'today'] : ['scan', 'manual', 'retiro', 'today']).filter(allowed);
 const defaultRoute = () => (isSuper() ? (state.school ? 'students' : 'schools') : readOnly() ? 'today' : 'scan');
@@ -202,7 +212,7 @@ function buildShell() {
     h('header', { class: 'top' }, title, status, h('button', { class: 'icon-btn light', onclick: openAccount, 'aria-label': 'Mi cuenta' }, icon('shield', 22))),
     banner,
     h('div', { class: 'layout' },
-      h('nav', { class: 'side' }, keys.map(k => link(k)), h('button', { class: 'nav-link', onclick: openAccount }, icon('logout', 22), h('span', null, 'Mi cuenta'))),
+      h('nav', { class: 'side' }, groupedKeys(keys).flatMap(([name, list]) => [h('div', { class: 'nav-h' }, name), ...list.map(k => link(k))]), h('div', { class: 'nav-h' }, 'Cuenta'), ...(keys.includes('ayuda') ? [link('ayuda')] : []), h('button', { class: 'nav-link', onclick: openAccount }, icon('logout', 22), h('span', null, 'Mi cuenta'))),
       shell.main),
     h('nav', { class: 'bottom' }, prim.map(k => link(k)), more.length ? moreBtn : h('button', { class: 'nav-link', onclick: openAccount }, icon('shield', 22), h('span', null, 'Cuenta'))));
 
@@ -211,7 +221,9 @@ function buildShell() {
     m.className = 'sheet-back';
     const close = () => m.remove();
     m.addEventListener('click', e => { if (e.target === m) close(); });
-    m.append(h('div', { class: 'sheet' }, h('div', { class: 'sheet-grid' }, more.map(k => h('a', { href: '#/' + k, class: 'sheet-item', onclick: close }, icon(VIEWS[k].icon, 26), h('span', null, VIEWS[k].title))),
+    m.append(h('div', { class: 'sheet' }, h('div', { class: 'sheet-grid' }, groupedKeys(more).flatMap(([name, list]) => [h('div', { class: 'sheet-h' }, name), ...list.map(k => h('a', { href: '#/' + k, class: 'sheet-item', onclick: close }, icon(VIEWS[k].icon, 26), h('span', null, VIEWS[k].title)))]),
+      h('div', { class: 'sheet-h' }, 'Cuenta'),
+      ...(more.includes('ayuda') ? [h('a', { href: '#/ayuda', class: 'sheet-item', onclick: close }, icon(VIEWS.ayuda.icon, 26), h('span', null, VIEWS.ayuda.title))] : []),
       h('button', { class: 'sheet-item', onclick: () => { close(); openAccount(); } }, icon('shield', 26), h('span', null, 'Mi cuenta')))));
     document.body.append(m);
   }
